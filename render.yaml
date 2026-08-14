@@ -1,0 +1,67 @@
+# Render deployment blueprint — PREP ONLY, not yet deployed.
+#
+# This matches the service breakdown in Prismma_Hosting_Cost_Overview.pdf exactly:
+#   - backend (FastAPI):    Render Web Service, Docker
+#   - homepage (Next.js):   Render Web Service, Docker (needs a running server for news + contact)
+#   - system (React+Vite):  Render Static Site (free, unlimited, no server needed)
+#   - database:             Supabase, separate provider, not part of this file
+#
+# Local dev via docker-compose.yml is unaffected by this file and keeps working as-is.
+# Verify field names against Render's current docs before actually deploying with this.
+
+services:
+  - type: web
+    name: prismma-backend
+    env: docker
+    dockerfilePath: ./docker/backend.Dockerfile
+    dockerContext: .
+    plan: starter
+    healthCheckPath: /health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET_KEY
+        sync: false
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: JWT_EXPIRE_MINUTES
+        value: "15"
+      - key: REFRESH_TOKEN_EXPIRE_DAYS
+        value: "7"
+      - key: CORS_ORIGINS
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: HR_EMAIL
+        sync: false
+
+  - type: web
+    name: prismma-homepage
+    env: docker
+    dockerfilePath: ./docker/homepage.Dockerfile
+    dockerContext: .
+    plan: starter
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        sync: false
+      - key: NEXT_PUBLIC_SYSTEM_URL
+        sync: false
+      - key: API_URL
+        sync: false
+
+  - type: web
+    name: prismma-system
+    env: static
+    buildCommand: cd system && npm install && npm run build
+    staticPublishPath: ./system/dist
+    envVars:
+      - key: VITE_API_URL
+        sync: false

@@ -1,0 +1,66 @@
+name: prismma-website
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    env_file:
+      - ../backend/.env
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/backend.Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ../backend/.env
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  homepage:
+    build:
+      context: ..
+      dockerfile: docker/homepage.Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ../homepage/.env.local
+    environment:
+      - API_URL=http://backend:8000
+    depends_on:
+      - backend
+
+  system:
+    build:
+      context: ..
+      dockerfile: docker/system.Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    depends_on:
+      - backend
+
+  nginx:
+    image: nginxinc/nginx-unprivileged:alpine-slim
+    restart: unless-stopped
+    ports:
+      - "80:8080"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/edge.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - homepage
+      - system
+      - backend
+
+volumes:
+  db_data:
