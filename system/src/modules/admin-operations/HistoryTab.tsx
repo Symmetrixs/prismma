@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
-import { Search, RotateCcw } from "lucide-react";
+import { Search, RotateCcw, Download } from "lucide-react";
 import { api } from "../../lib/api";
+import LoadingSpinner from "../../components/LoadingSpinner";
 import { useToast } from "../../context/ToastContext";
+import { downloadCsv } from "../../lib/csv";
 
 const TYPE_OPTIONS = [
   { value: "", label: "All types" },
@@ -73,7 +75,20 @@ export default function HistoryTab() {
     return list;
   }, [entries, search, type, department, sortDesc]);
 
-  if (loading) return null;
+  if (loading) return <LoadingSpinner />;
+
+  function exportCsv() {
+    const headers = ["Type", "Target", "Actor", "Department", "Detail", "Date"];
+    const csvRows = filtered.map((e) => [
+      e.label,
+      e.target_name,
+      e.actor_name || "System",
+      e.target_department || "",
+      e.detail || "",
+      e.created_at ? new Date(e.created_at).toLocaleString() : "",
+    ]);
+    downloadCsv(`history-${new Date().toISOString().slice(0, 10)}.csv`, headers, csvRows);
+  }
 
   return (
     <div>
@@ -103,6 +118,12 @@ export default function HistoryTab() {
           className="text-sm text-body px-3 py-2.5 rounded-md border border-black/10 hover:bg-gray-50"
         >
           {sortDesc ? "Newest first" : "Oldest first"}
+        </button>
+        <button
+          onClick={exportCsv}
+          className="flex items-center gap-1.5 rounded-md border border-black/10 px-4 py-2.5 text-sm text-body hover:bg-gray-50"
+        >
+          <Download size={14} /> Export CSV
         </button>
       </div>
 

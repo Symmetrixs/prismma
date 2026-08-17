@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
-import { Check, X } from "lucide-react";
+import { Check, X, ShieldCheck } from "lucide-react";
 import { api } from "../../lib/api";
+import LoadingSpinner from "../../components/LoadingSpinner";
+import EmptyState from "../../components/EmptyState";
 import { useToast } from "../../context/ToastContext";
 
 export default function ModuleRequestsTab() {
@@ -42,8 +44,8 @@ export default function ModuleRequestsTab() {
     }
   }
 
-  if (loading) return null;
-  if (requests.length === 0) return <p className="text-sm text-body py-10 text-center">No pending module requests</p>;
+  if (loading) return <LoadingSpinner />;
+  if (requests.length === 0) return <EmptyState icon={ShieldCheck} message="No pending module requests" />;
 
   return (
     <div className="space-y-3">

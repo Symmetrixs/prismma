@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
-import { Search } from "lucide-react";
+import { Search, Download } from "lucide-react";
 import { api } from "../../lib/api";
+import LoadingSpinner from "../../components/LoadingSpinner";
+import { downloadCsv } from "../../lib/csv";
 
 type SortKey = "department_name" | "total" | "active" | "pending" | "disabled";
 
@@ -54,7 +56,7 @@ export default function AnalyticsTab({ isSuperadmin }: { isSuperadmin: boolean }
     [rows, isSuperadmin]
   );
 
-  if (loading) return null;
+  if (loading) return <LoadingSpinner />;
 
   const columns: { key: SortKey; label: string }[] = [
     { key: "department_name", label: "Department" },
@@ -63,6 +65,12 @@ export default function AnalyticsTab({ isSuperadmin }: { isSuperadmin: boolean }
     { key: "pending", label: "Pending" },
   ];
   if (isSuperadmin) columns.push({ key: "disabled", label: "Disabled" });
+
+  function exportCsv() {
+    const headers = columns.map((c) => c.label);
+    const csvRows = filtered.map((r) => columns.map((c) => r[c.key] ?? 0));
+    downloadCsv(`department-analytics-${new Date().toISOString().slice(0, 10)}.csv`, headers, csvRows);
+  }
 
   return (
     <div>
@@ -87,14 +95,22 @@ export default function AnalyticsTab({ isSuperadmin }: { isSuperadmin: boolean }
         )}
       </div>
 
-      <div className="relative mb-4 max-w-sm">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-body" />
-        <input
-          placeholder="Search department"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full rounded-md border border-black/10 pl-9 pr-3 py-2.5 text-sm"
-        />
+      <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+        <div className="relative max-w-sm flex-1 min-w-[220px]">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-body" />
+          <input
+            placeholder="Search department"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full rounded-md border border-black/10 pl-9 pr-3 py-2.5 text-sm"
+          />
+        </div>
+        <button
+          onClick={exportCsv}
+          className="flex items-center gap-1.5 rounded-md border border-black/10 px-4 py-2.5 text-sm text-body hover:bg-gray-50"
+        >
+          <Download size={14} /> Export CSV
+        </button>
       </div>
 
       <div className="bg-white rounded-xl border border-black/10 overflow-x-auto">

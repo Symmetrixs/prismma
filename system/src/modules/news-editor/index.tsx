@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
-import { Plus, Pencil, Trash2, Newspaper, X, Image as ImageIcon, Video, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, Pencil, Trash2, Newspaper, X, ArrowUp, ArrowDown } from "lucide-react";
 import { api } from "../../lib/api";
 import DashboardLayout from "../../components/DashboardLayout";
+import ConfirmDialog from "../../components/ConfirmDialog";
+import { useToast } from "../../context/ToastContext";
+import { useEscapeKey } from "../../lib/useEscapeKey";
 
 interface MediaItem {
   media_type: "image" | "video";
@@ -38,6 +41,30 @@ export default function NewsEditor() {
   const [error, setError] = useState<string | null>(null);
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [deletingArticle, setDeletingArticle] = useState<Article | null>(null);
+  const [originalForm, setOriginalForm] = useState(emptyForm);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const toast = useToast();
+
+  const hasFormChanges = JSON.stringify(form) !== JSON.stringify(originalForm);
+
+  function attemptCloseForm() {
+    if (hasFormChanges) {
+      setConfirmDiscard(true);
+    } else {
+      setShowForm(false);
+    }
+  }
+
+  function discardAndClose() {
+    setConfirmDiscard(false);
+    setShowForm(false);
+  }
+
+  useEscapeKey(() => {
+    if (confirmDiscard) return;
+    if (showForm) attemptCloseForm();
+  });
 
   async function load() {
     setLoading(true);
@@ -55,20 +82,23 @@ export default function NewsEditor() {
   function openCreate() {
     setEditing(null);
     setForm(emptyForm);
+    setOriginalForm(emptyForm);
     setError(null);
     setShowForm(true);
   }
 
   function openEdit(article: Article) {
     setEditing(article);
-    setForm({
+    const initial = {
       title: article.title,
       excerpt: article.excerpt || "",
       content: article.content,
       category: article.category,
       published: article.published,
       media: [...article.media].sort((a, b) => a.order - b.order),
-    });
+    };
+    setForm(initial);
+    setOriginalForm(initial);
     setError(null);
     setShowForm(true);
   }
@@ -113,8 +143,10 @@ export default function NewsEditor() {
     try {
       if (editing) {
         await api.updateNews(editing.id, form);
+        toast.success("Article updated");
       } else {
         await api.createNews(form);
+        toast.success("Article created");
       }
       setShowForm(false);
       load();
@@ -123,10 +155,17 @@ export default function NewsEditor() {
     }
   }
 
-  async function handleDelete(id: number) {
-    if (!confirm("Delete this article?")) return;
-    await api.deleteNews(id);
-    load();
+  async function confirmDelete() {
+    if (!deletingArticle) return;
+    try {
+      await api.deleteNews(deletingArticle.id);
+      toast.success("Article deleted");
+      setDeletingArticle(null);
+      load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not delete article");
+      setDeletingArticle(null);
+    }
   }
 
   return (
@@ -167,7 +206,7 @@ export default function NewsEditor() {
                 <button onClick={() => openEdit(a)} className="flex items-center gap-1.5 text-sm text-brand-navy hover:underline">
                   <Pencil size={14} /> Edit
                 </button>
-                <button onClick={() => handleDelete(a.id)} className="flex items-center gap-1.5 text-sm text-red-600 hover:underline">
+                <button onClick={() => setDeletingArticle(a)} className="flex items-center gap-1.5 text-sm text-red-600 hover:underline">
                   <Trash2 size={14} /> Delete
                 </button>
               </div>
@@ -183,7 +222,7 @@ export default function NewsEditor() {
               <h2 className="font-display text-lg font-semibold text-brand-navy">
                 {editing ? "Edit Article" : "New Article"}
               </h2>
-              <button onClick={() => setShowForm(false)}>
+              <button onClick={attemptCloseForm}>
                 <X size={20} className="text-body" />
               </button>
             </div>
@@ -235,9 +274,15 @@ export default function NewsEditor() {
                 {form.media.length > 0 && (
                   <div className="space-y-2">
                     {form.media.map((item, i) => (
-                      <div key={i} className="flex items-center gap-2 bg-gray-50 rounded-md px-3 py-2 text-sm">
-                        {item.media_type === "image" ? <ImageIcon size={14} className="text-brand-orange shrink-0" /> : <Video size={14} className="text-brand-orange shrink-0" />}
-                        <span className="flex-1 truncate text-body">{item.url}</span>
+                      <div key={i} className="flex items-center gap-3 bg-gray-50 rounded-md px-3 py-2 text-sm">
+                        <div className="w-12 h-12 rounded overflow-hidden bg-gray-200 shrink-0">
+                          {item.media_type === "image" ? (
+                            <img src={item.url} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <video src={item.url} muted className="w-full h-full object-cover" />
+                          )}
+                        </div>
+                        <span className="flex-1 truncate text-body">{item.media_type === "image" ? "Image" : "Video"} {i + 1}</span>
                         <button type="button" onClick={() => moveMedia(i, -1)} disabled={i === 0} className="disabled:opacity-30">
                           <ArrowUp size={14} />
                         </button>
@@ -280,6 +325,26 @@ export default function NewsEditor() {
             </form>
           </div>
         </div>
+      )}
+
+      {confirmDiscard && (
+        <ConfirmDialog
+          title="Discard changes?"
+          message="You have unsaved changes to this article. Closing now will discard them."
+          confirmLabel="Discard"
+          onConfirm={discardAndClose}
+          onCancel={() => setConfirmDiscard(false)}
+        />
+      )}
+
+      {deletingArticle && (
+        <ConfirmDialog
+          title="Delete article"
+          message={`Delete "${deletingArticle.title}"? This cannot be undone.`}
+          confirmLabel="Delete"
+          onConfirm={confirmDelete}
+          onCancel={() => setDeletingArticle(null)}
+        />
       )}
     </DashboardLayout>
   );

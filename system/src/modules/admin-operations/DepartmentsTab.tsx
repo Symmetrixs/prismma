@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { api } from "../../lib/api";
+import LoadingSpinner from "../../components/LoadingSpinner";
 
 export default function DepartmentsTab() {
   const [departments, setDepartments] = useState<any[]>([]);
@@ -29,7 +30,7 @@ export default function DepartmentsTab() {
     load();
   }
 
-  if (loading) return null;
+  if (loading) return <LoadingSpinner />;
 
   return (
     <div>

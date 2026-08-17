@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
-import { Check, X, Search } from "lucide-react";
+import { Check, X, Search, UserCheck } from "lucide-react";
 import { api } from "../../lib/api";
+import LoadingSpinner from "../../components/LoadingSpinner";
+import EmptyState from "../../components/EmptyState";
 import { useToast } from "../../context/ToastContext";
 
 export default function RegistrationsTab() {
@@ -54,7 +56,7 @@ export default function RegistrationsTab() {
     );
   }, [users, search]);
 
-  if (loading) return null;
+  if (loading) return <LoadingSpinner />;
 
   return (
     <div>
@@ -69,9 +71,10 @@ export default function RegistrationsTab() {
       </div>
 
       {filtered.length === 0 ? (
-        <p className="text-sm text-body py-10 text-center">
-          {users.length === 0 ? "No pending registrations" : "No matches"}
-        </p>
+        <EmptyState
+          icon={UserCheck}
+          message={users.length === 0 ? "No pending registrations" : "No matches for your search"}
+        />
       ) : (
         <div className="space-y-3">
           {filtered.map((u) => (

@@ -11,6 +11,7 @@ export interface ModuleDef {
 export interface AccessRecord {
   module_id: number;
   status: string;
+  rejection_reason?: string | null;
 }
 
 export const moduleIconMap: Record<string, typeof Package> = {

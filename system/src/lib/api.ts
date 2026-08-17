@@ -38,9 +38,7 @@ async function request(path: string, options: RequestOptions = {}) {
   }
 
   if (!res.ok) {
-    const body = await res
-      .json()
-      .catch(() => ({ detail: "Something went wrong" }));
+    const body = await res.json().catch(() => ({ detail: "Something went wrong" }));
     throw new Error(body.detail || "Request failed");
   }
 
@@ -103,12 +101,7 @@ export const api = {
     phone_number?: string;
     department_id?: number;
     job_title?: string;
-  }) =>
-    request("/auth/register", {
-      method: "POST",
-      body: JSON.stringify(payload),
-      skipAuth: true,
-    }),
+  }) => request("/auth/register", { method: "POST", body: JSON.stringify(payload), skipAuth: true }),
 
   login: (identifier: string, password: string) =>
     request("/auth/login", {
@@ -144,13 +137,14 @@ export const api = {
     description?: string;
     status: string;
   }) => request("/modules", { method: "POST", body: JSON.stringify(payload) }),
+  updateModuleStatus: (id: number, status: string) =>
+    request(`/modules/${id}`, { method: "PATCH", body: JSON.stringify({ status }) }),
   deleteModule: (id: number) => request(`/modules/${id}`, { method: "DELETE" }),
 
   getDepartments: () => request("/departments", { skipAuth: true }),
   createDepartment: (name: string) =>
     request("/departments", { method: "POST", body: JSON.stringify({ name }) }),
-  deleteDepartment: (id: number) =>
-    request(`/departments/${id}`, { method: "DELETE" }),
+  deleteDepartment: (id: number) => request(`/departments/${id}`, { method: "DELETE" }),
 
   getMyModuleAccess: () => request("/module-access/mine"),
   requestModuleAccess: (moduleId: number) =>
@@ -161,8 +155,7 @@ export const api = {
       body: JSON.stringify({ user_id: userId, module_id: moduleId }),
     }),
   getPendingModuleRequests: () => request("/module-access/pending"),
-  approveModuleRequest: (id: number) =>
-    request(`/module-access/${id}/approve`, { method: "POST" }),
+  approveModuleRequest: (id: number) => request(`/module-access/${id}/approve`, { method: "POST" }),
   rejectModuleRequest: (id: number, reason: string) =>
     request(`/module-access/${id}/reject`, {
       method: "POST",
@@ -175,36 +168,23 @@ export const api = {
   getPendingRegistrations: () => request("/users/pending-registrations"),
   createUser: (payload: Record<string, unknown>) =>
     request("/users", { method: "POST", body: JSON.stringify(payload) }),
-  approveRegistration: (id: number) =>
-    request(`/users/${id}/approve`, { method: "POST" }),
+  approveRegistration: (id: number) => request(`/users/${id}/approve`, { method: "POST" }),
   rejectRegistration: (id: number, reason: string) =>
-    request(`/users/${id}/reject`, {
-      method: "POST",
-      body: JSON.stringify({ reason }),
-    }),
+    request(`/users/${id}/reject`, { method: "POST", body: JSON.stringify({ reason }) }),
   updateUser: (id: number, payload: Record<string, unknown>) =>
     request(`/users/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
-  disableUser: (id: number) =>
-    request(`/users/${id}/disable`, { method: "POST" }),
-  enableUser: (id: number) =>
-    request(`/users/${id}/enable`, { method: "POST" }),
-  unlockUser: (id: number) =>
-    request(`/users/${id}/unlock`, { method: "POST" }),
+  disableUser: (id: number) => request(`/users/${id}/disable`, { method: "POST" }),
+  enableUser: (id: number) => request(`/users/${id}/enable`, { method: "POST" }),
+  unlockUser: (id: number) => request(`/users/${id}/unlock`, { method: "POST" }),
   setBlockStatus: (id: number, isBlocked: boolean) =>
-    request(`/users/${id}/block`, {
-      method: "POST",
-      body: JSON.stringify({ is_blocked: isBlocked }),
-    }),
+    request(`/users/${id}/block`, { method: "POST", body: JSON.stringify({ is_blocked: isBlocked }) }),
   changeRole: (id: number, newRole: string) =>
-    request(`/users/${id}/role`, {
-      method: "POST",
-      body: JSON.stringify({ new_role: newRole }),
-    }),
+    request(`/users/${id}/role`, { method: "POST", body: JSON.stringify({ new_role: newRole }) }),
 
-  revokeModuleAccess: (id: number) =>
-    request(`/module-access/${id}/revoke`, { method: "POST" }),
+  revokeModuleAccess: (id: number) => request(`/module-access/${id}/revoke`, { method: "POST" }),
 
   getHistory: () => request("/history"),
+  getMyActivity: () => request("/history/mine"),
 
   getPendingPasswordResets: () => request("/auth/password-reset/pending"),
   approvePasswordReset: (id: number) =>
@@ -218,6 +198,5 @@ export const api = {
   deleteNews: (id: number) => request(`/news/${id}`, { method: "DELETE" }),
 
   uploadNewsMedia: (file: File) => uploadFile("/uploads/news-media", file),
-  uploadProfilePicture: (file: File) =>
-    uploadFile("/uploads/profile-picture", file),
+  uploadProfilePicture: (file: File) => uploadFile("/uploads/profile-picture", file),
 };

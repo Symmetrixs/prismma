@@ -15,6 +15,7 @@ const config: Config = {
         brand: {
           orange: "#FF6600",
           navy: "#000066",
+          green: "#16A34A",
         },
         body: "#4D4D4D",
       },

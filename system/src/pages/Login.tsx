@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { LogIn } from "lucide-react";
+import { LogIn, ArrowLeft } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 export default function Login() {
@@ -29,6 +29,12 @@ export default function Login() {
     <div className="relative min-h-screen flex items-center justify-center px-6">
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center text-center mb-8">
+          <a
+            href={import.meta.env.VITE_HOMEPAGE_URL || "https://prismma.net"}
+            className="inline-flex items-center gap-1.5 text-sm text-body hover:text-brand-navy mb-6"
+          >
+            <ArrowLeft size={14} /> Back to Prismma Express
+          </a>
           <img src="/assets/logos/prismma_main_logo.png" alt="Prismma Express" className="h-9 mb-6" />
           <h1 className="font-display text-2xl font-semibold text-brand-navy">Prismma Internal Portal</h1>
           <p className="mt-2 text-body">Sign in with your email or employee ID</p>
@@ -52,7 +58,12 @@ export default function Login() {
           </div>
 
           <div>
-            <label className="text-sm text-body block mb-1">Password</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-sm text-body">Password</label>
+              <Link to="/forgot-password" className="text-sm text-brand-orange hover:underline">
+                Forgot password?
+              </Link>
+            </div>
             <input
               required
               type="password"

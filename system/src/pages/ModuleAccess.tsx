@@ -28,6 +28,10 @@ export default function ModuleAccess() {
     return access.find((a) => a.module_id === moduleId)?.status ?? null;
   }
 
+  function rejectionReasonFor(moduleId: number) {
+    return access.find((a) => a.module_id === moduleId)?.rejection_reason ?? null;
+  }
+
   async function handleRequest(moduleId: number) {
     setRequestingId(moduleId);
     try {
@@ -77,13 +81,18 @@ export default function ModuleAccess() {
                   <Clock size={14} /> Request pending
                 </span>
               ) : status === "rejected" ? (
-                <button
-                  onClick={() => handleRequest(mod.id)}
-                  disabled={requestingId === mod.id}
-                  className="text-sm text-red-600 mt-4 hover:underline disabled:opacity-50"
-                >
-                  Rejected, request again
-                </button>
+                <div className="mt-4">
+                  <button
+                    onClick={() => handleRequest(mod.id)}
+                    disabled={requestingId === mod.id}
+                    className="text-sm text-red-600 hover:underline disabled:opacity-50"
+                  >
+                    Rejected, request again
+                  </button>
+                  {rejectionReasonFor(mod.id) && (
+                    <p className="text-xs text-body/70 mt-1">Reason: {rejectionReasonFor(mod.id)}</p>
+                  )}
+                </div>
               ) : status === "revoked" ? (
                 <button
                   onClick={() => handleRequest(mod.id)}

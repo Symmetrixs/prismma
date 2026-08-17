@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
+import { Info } from "lucide-react";
 import { api } from "../../lib/api";
+import LoadingSpinner from "../../components/LoadingSpinner";
+import { useToast } from "../../context/ToastContext";
 
 export default function ModulesTab() {
   const [modules, setModules] = useState<any[]>([]);
-  const [form, setForm] = useState({ name: "", description: "", status: "coming_soon" });
   const [loading, setLoading] = useState(true);
+  const toast = useToast();
 
   async function load() {
     setLoading(true);
@@ -16,39 +19,60 @@ export default function ModulesTab() {
     load();
   }, []);
 
-  async function add(e: React.FormEvent) {
-    e.preventDefault();
-    await api.createModule(form);
-    setForm({ name: "", description: "", status: "coming_soon" });
-    load();
+  async function changeStatus(id: number, status: string) {
+    try {
+      await api.updateModuleStatus(id, status);
+      toast.success("Module status updated");
+      load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not update status");
+    }
   }
 
   async function remove(id: number) {
-    await api.deleteModule(id);
-    load();
+    try {
+      await api.deleteModule(id);
+      toast.success("Module removed");
+      load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not remove module");
+    }
   }
 
-  if (loading) return null;
+  if (loading) return <LoadingSpinner />;
 
   return (
     <div>
-      <form onSubmit={add} className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-        <input required placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="rounded-md border border-black/10 px-4 py-2.5 text-sm" />
-        <input placeholder="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="rounded-md border border-black/10 px-4 py-2.5 text-sm" />
-        <button className="rounded-md bg-brand-orange text-white px-5 py-2.5 text-sm font-medium hover:opacity-90">Add Module</button>
-      </form>
-      <p className="text-xs text-body mb-4">
-        The module's URL slug is generated automatically from its name. Adding a module here registers it in the
-        system, its actual screen still needs a matching folder in <code className="bg-gray-100 px-1 rounded">modules/</code> wired into the registry.
-      </p>
+      <div className="flex items-start gap-3 bg-brand-navy/5 border border-brand-navy/10 rounded-md px-4 py-3 mb-6">
+        <Info size={16} className="text-brand-navy mt-0.5 shrink-0" />
+        <p className="text-sm text-body">
+          New modules aren't created from this screen. Each one is built as its own folder under{" "}
+          <code className="bg-white px-1 rounded">system/src/modules/</code>, then registered here as part of
+          that work. This list reflects what currently exists, you can toggle a module active once it's ready
+          for staff to request, or remove one that's no longer needed.
+        </p>
+      </div>
+
       <div className="bg-white rounded-xl border border-black/10 divide-y divide-black/5">
         {modules.map((m) => (
-          <div key={m.id} className="flex items-center justify-between px-5 py-3">
+          <div key={m.id} className="flex items-center justify-between px-5 py-4 flex-wrap gap-3">
             <div>
               <span className="text-sm font-medium text-brand-navy">{m.name}</span>
-              <span className="text-xs text-body ml-2">({m.status})</span>
+              {m.description && <p className="text-xs text-body mt-0.5">{m.description}</p>}
             </div>
-            <button onClick={() => remove(m.id)} className="text-xs text-red-600 hover:underline">Remove</button>
+            <div className="flex items-center gap-3">
+              <select
+                value={m.status}
+                onChange={(e) => changeStatus(m.id, e.target.value)}
+                className="text-xs border border-black/10 rounded px-2 py-1.5 bg-white text-brand-navy"
+              >
+                <option value="active">Active</option>
+                <option value="coming_soon">Coming Soon</option>
+              </select>
+              <button onClick={() => remove(m.id)} className="text-xs text-red-600 hover:underline">
+                Remove
+              </button>
+            </div>
           </div>
         ))}
       </div>

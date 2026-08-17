@@ -5,7 +5,7 @@ export default function Ticketing() {
   return (
     <DashboardLayout>
       <div className="flex flex-col items-center justify-center py-24 text-center">
-        <div className="flex items-center justify-center w-16 h-16 rounded-full bg-brand-orange/10 text-brand-orange mb-5">
+        <div className="flex items-center justify-center w-16 h-16 rounded-full bg-brand-green/10 text-brand-green mb-5">
           <Wrench size={28} />
         </div>
         <h1 className="font-display text-xl font-medium text-brand-navy">

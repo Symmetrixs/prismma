@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { X, Unlock, Ban, ShieldOff } from "lucide-react";
+import { X, Unlock, Ban, ShieldOff, Copy } from "lucide-react";
 import { api } from "../../lib/api";
-import ConfirmDialog from "./ConfirmDialog";
+import ConfirmDialog from "../../components/ConfirmDialog";
 import { useToast } from "../../context/ToastContext";
+import { useEscapeKey } from "../../lib/useEscapeKey";
 
 interface Props {
   userId: number;
@@ -17,15 +18,23 @@ export default function UserDetailPanel({ userId, isSuperadmin, onClose, onChang
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<any>({});
   const [departments, setDepartments] = useState<any[]>([]);
+  const [modules, setModules] = useState<any[]>([]);
   const [pendingRole, setPendingRole] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [grantModuleId, setGrantModuleId] = useState("");
+  const [granting, setGranting] = useState(false);
   const toast = useToast();
+
+  useEscapeKey(() => {
+    if (!pendingRole) onClose();
+  });
 
   async function load() {
     setLoading(true);
-    const [d, depts] = await Promise.all([api.getUserDetail(userId), api.getDepartments()]);
+    const [d, depts, mods] = await Promise.all([api.getUserDetail(userId), api.getDepartments(), api.getModules()]);
     setDetail(d);
     setDepartments(depts);
+    setModules(mods.filter((m: any) => m.slug !== "admin-operations"));
     setForm({
       name: d.name,
       employee_id: d.employee_id || "",
@@ -118,6 +127,30 @@ export default function UserDetailPanel({ userId, isSuperadmin, onClose, onChang
     }
   }
 
+  async function copyToClipboard(value: string, label: string) {
+    try {
+      await navigator.clipboard.writeText(value);
+      toast.success(`${label} copied`);
+    } catch {
+      toast.error(`Could not copy ${label.toLowerCase()}`);
+    }
+  }
+
+  async function grantAccess() {
+    if (!grantModuleId) return;
+    setGranting(true);
+    try {
+      await api.grantModuleAccess(userId, Number(grantModuleId));
+      toast.success("Module access granted");
+      setGrantModuleId("");
+      load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not grant access");
+    } finally {
+      setGranting(false);
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
       <div className="bg-white rounded-xl border border-black/10 max-w-lg w-full shadow-lg max-h-[85vh] overflow-y-auto">
@@ -135,7 +168,12 @@ export default function UserDetailPanel({ userId, isSuperadmin, onClose, onChang
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div>
                 <p className="font-medium text-brand-navy text-lg">{detail.name}</p>
-                <p className="text-sm text-body">{detail.email}</p>
+                <p className="text-sm text-body flex items-center gap-1.5">
+                  {detail.email}
+                  <button onClick={() => copyToClipboard(detail.email, "Email")} className="text-body/50 hover:text-brand-navy" title="Copy email">
+                    <Copy size={12} />
+                  </button>
+                </p>
               </div>
               <span
                 className={`text-xs px-2 py-1 rounded-full ${
@@ -173,7 +211,14 @@ export default function UserDetailPanel({ userId, isSuperadmin, onClose, onChang
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
                   <p className="text-body text-xs">Employee ID</p>
-                  <p className="text-brand-navy">{detail.employee_id || "—"}</p>
+                  <p className="text-brand-navy flex items-center gap-1.5">
+                    {detail.employee_id || "—"}
+                    {detail.employee_id && (
+                      <button onClick={() => copyToClipboard(detail.employee_id, "Employee ID")} className="text-body/50 hover:text-brand-navy" title="Copy employee ID">
+                        <Copy size={12} />
+                      </button>
+                    )}
+                  </p>
                 </div>
                 <div>
                   <p className="text-body text-xs">Phone</p>
@@ -219,7 +264,36 @@ export default function UserDetailPanel({ userId, isSuperadmin, onClose, onChang
             </div>
 
             <div>
-              <p className="text-sm font-medium text-brand-navy mb-2">Module Access</p>
+              <div className="flex items-center justify-between mb-2 gap-3 flex-wrap">
+                <p className="text-sm font-medium text-brand-navy">Module Access</p>
+                {(() => {
+                  const grantable = modules.filter(
+                    (m) => !detail.module_access.some((a: any) => a.module_id === m.id && (a.status === "approved" || a.status === "pending"))
+                  );
+                  if (grantable.length === 0) return null;
+                  return (
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={grantModuleId}
+                        onChange={(e) => setGrantModuleId(e.target.value)}
+                        className="text-xs border border-black/10 rounded px-2 py-1.5 bg-white text-brand-navy"
+                      >
+                        <option value="">Grant access to...</option>
+                        {grantable.map((m) => (
+                          <option key={m.id} value={m.id}>{m.name}</option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={grantAccess}
+                        disabled={!grantModuleId || granting}
+                        className="text-xs font-medium text-white bg-brand-navy px-3 py-1.5 rounded disabled:opacity-40"
+                      >
+                        {granting ? "Granting..." : "Grant"}
+                      </button>
+                    </div>
+                  );
+                })()}
+              </div>
               {detail.module_access.length === 0 ? (
                 <p className="text-xs text-body">No module access on record</p>
               ) : (

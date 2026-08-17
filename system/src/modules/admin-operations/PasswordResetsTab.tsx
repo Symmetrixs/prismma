@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
-import { Lock } from "lucide-react";
+import { Lock, KeyRound } from "lucide-react";
 import { api } from "../../lib/api";
+import LoadingSpinner from "../../components/LoadingSpinner";
+import EmptyState from "../../components/EmptyState";
 import { useToast } from "../../context/ToastContext";
 
 export default function PasswordResetsTab() {
@@ -28,8 +30,8 @@ export default function PasswordResetsTab() {
     }
   }
 
-  if (loading) return null;
-  if (requests.length === 0) return <p className="text-sm text-body py-10 text-center">No pending password reset requests</p>;
+  if (loading) return <LoadingSpinner />;
+  if (requests.length === 0) return <EmptyState icon={KeyRound} message="No pending password reset requests" />;
 
   return (
     <div className="space-y-3">

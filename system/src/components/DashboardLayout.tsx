@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { LogOut, LayoutGrid, User as UserIcon, PlusCircle, Menu, X } from "lucide-react";
+import { LogOut, LayoutGrid, User as UserIcon, PlusCircle, History, Menu, X } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../lib/api";
 
@@ -46,6 +46,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const navItems = [
     { to: "/", label: "Dashboard", icon: LayoutGrid },
     { to: "/module-access", label: "Module Access", icon: PlusCircle },
+    { to: "/my-activity", label: "My Activity", icon: History },
     { to: "/profile", label: "Profile", icon: UserIcon },
   ];
 

@@ -15,6 +15,10 @@ class ModuleCreate(BaseModel):
     status: str = "coming_soon"
 
 
+class ModuleStatusUpdate(BaseModel):
+    status: str
+
+
 class ModuleRead(BaseModel):
     id: int
     name: str
@@ -58,6 +62,24 @@ def create_module(
         created_by=current_user.id,
     )
     db.add(module)
+    db.commit()
+    db.refresh(module)
+    return module
+
+
+@router.patch("/{module_id}", response_model=ModuleRead)
+def update_module_status(
+    module_id: int,
+    payload: ModuleStatusUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_superadmin),
+):
+    if payload.status not in ("active", "coming_soon"):
+        raise HTTPException(status_code=400, detail="Invalid status")
+    module = db.query(Module).filter(Module.id == module_id).first()
+    if not module:
+        raise HTTPException(status_code=404, detail="Module not found")
+    module.status = payload.status
     db.commit()
     db.refresh(module)
     return module

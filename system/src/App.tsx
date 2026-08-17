@@ -3,10 +3,13 @@ import { AuthProvider } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import GlobalBackground from "./components/GlobalBackground";
+import InactivityMonitor from "./components/InactivityMonitor";
 import Login from "./pages/Login";
+import ForgotPassword from "./pages/ForgotPassword";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
+import MyActivity from "./pages/MyActivity";
 import ModuleAccess from "./pages/ModuleAccess";
 import ModuleRoute from "./pages/ModuleRoute";
 
@@ -16,8 +19,10 @@ export default function App() {
       <ToastProvider>
         <AuthProvider>
           <GlobalBackground />
+          <InactivityMonitor />
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/register" element={<Register />} />
             <Route
               path="/"
@@ -32,6 +37,14 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <Profile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/my-activity"
+              element={
+                <ProtectedRoute>
+                  <MyActivity />
                 </ProtectedRoute>
               }
             />

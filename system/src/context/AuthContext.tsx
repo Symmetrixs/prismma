@@ -14,6 +14,7 @@ interface User {
   account_status: string;
   is_blocked: boolean;
   account_locked: boolean;
+  last_login_at: string | null;
 }
 
 interface AuthContextValue {

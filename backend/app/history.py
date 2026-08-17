@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session, aliased
 from pydantic import BaseModel
 from app.db.session import get_db
-from app.core.deps import require_superadmin
+from app.core.deps import require_superadmin, get_current_user
 from app.models import User, Department, RoleChangeHistory, ModuleAccess, Module, PasswordResetRequest, AccountActionLog
 
 router = APIRouter(prefix="/history", tags=["history"])
@@ -36,8 +36,7 @@ class HistoryEntry(BaseModel):
     created_at: datetime | None
 
 
-@router.get("", response_model=list[HistoryEntry])
-def get_history(db: Session = Depends(get_db), current_user: User = Depends(require_superadmin)):
+def _build_all_entries(db: Session) -> list[HistoryEntry]:
     entries: list[HistoryEntry] = []
     Target = aliased(User)
     Actor = aliased(User)
@@ -141,3 +140,14 @@ def get_history(db: Session = Depends(get_db), current_user: User = Depends(requ
 
     entries.sort(key=lambda e: e.created_at or datetime.min, reverse=True)
     return entries
+
+
+@router.get("", response_model=list[HistoryEntry])
+def get_history(db: Session = Depends(get_db), current_user: User = Depends(require_superadmin)):
+    return _build_all_entries(db)
+
+
+@router.get("/mine", response_model=list[HistoryEntry])
+def get_my_history(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    all_entries = _build_all_entries(db)
+    return [e for e in all_entries if e.target_id == current_user.id]

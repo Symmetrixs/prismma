@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { UserCheck, ShieldCheck, Users, Building2, LayoutGrid, KeyRound, BarChart3, History as HistoryIcon } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { api } from "../../lib/api";
 import DashboardLayout from "../../components/DashboardLayout";
 import RegistrationsTab from "./RegistrationsTab";
 import ModuleRequestsTab from "./ModuleRequestsTab";
@@ -21,21 +22,57 @@ type Tab =
   | "password-resets"
   | "history";
 
+const STORAGE_KEY = "prismma-admin-ops-tab";
+
+const TAB_DEFS: { key: Tab; label: string; icon: typeof UserCheck; superadminOnly?: boolean }[] = [
+  { key: "registrations", label: "Registrations", icon: UserCheck },
+  { key: "module-requests", label: "Module Requests", icon: ShieldCheck, superadminOnly: true },
+  { key: "users", label: "Users", icon: Users },
+  { key: "analytics", label: "Analytics", icon: BarChart3 },
+  { key: "departments", label: "Departments", icon: Building2, superadminOnly: true },
+  { key: "modules", label: "Modules", icon: LayoutGrid, superadminOnly: true },
+  { key: "password-resets", label: "Password Resets", icon: KeyRound },
+  { key: "history", label: "History", icon: HistoryIcon, superadminOnly: true },
+];
+
+function initialTab(isSuperadmin: boolean): Tab {
+  const stored = window.localStorage.getItem(STORAGE_KEY) as Tab | null;
+  const match = TAB_DEFS.find((t) => t.key === stored);
+  if (match && (!match.superadminOnly || isSuperadmin)) return match.key;
+  return "registrations";
+}
+
 export default function AdminOperations() {
   const { user } = useAuth();
   const isSuperadmin = user?.role === "superadmin";
-  const [tab, setTab] = useState<Tab>("registrations");
+  const [tab, setTabState] = useState<Tab>(() => initialTab(isSuperadmin));
+  const [counts, setCounts] = useState<Partial<Record<Tab, number>>>({});
 
-  const tabs: { key: Tab; label: string; icon: typeof UserCheck; superadminOnly?: boolean }[] = [
-    { key: "registrations", label: "Registrations", icon: UserCheck },
-    { key: "module-requests", label: "Module Requests", icon: ShieldCheck, superadminOnly: true },
-    { key: "users", label: "Users", icon: Users },
-    { key: "analytics", label: "Analytics", icon: BarChart3 },
-    { key: "departments", label: "Departments", icon: Building2, superadminOnly: true },
-    { key: "modules", label: "Modules", icon: LayoutGrid, superadminOnly: true },
-    { key: "password-resets", label: "Password Resets", icon: KeyRound },
-    { key: "history", label: "History", icon: HistoryIcon, superadminOnly: true },
-  ];
+  useEffect(() => {
+    async function loadCounts() {
+      const [registrations, resets] = await Promise.all([
+        api.getPendingRegistrations(),
+        api.getPendingPasswordResets(),
+      ]);
+      const next: Partial<Record<Tab, number>> = {
+        registrations: registrations.length,
+        "password-resets": resets.length,
+      };
+      if (isSuperadmin) {
+        const requests = await api.getPendingModuleRequests();
+        next["module-requests"] = requests.length;
+      }
+      setCounts(next);
+    }
+    loadCounts();
+  }, [isSuperadmin]);
+
+  function setTab(key: Tab) {
+    setTabState(key);
+    window.localStorage.setItem(STORAGE_KEY, key);
+  }
+
+  const tabs = TAB_DEFS;
 
   return (
     <DashboardLayout>
@@ -46,6 +83,7 @@ export default function AdminOperations() {
         {tabs.map((t) => {
           if (t.superadminOnly && !isSuperadmin) return null;
           const Icon = t.icon;
+          const count = counts[t.key];
           return (
             <button
               key={t.key}
@@ -56,6 +94,11 @@ export default function AdminOperations() {
             >
               <Icon size={16} />
               {t.label}
+              {!!count && (
+                <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[11px] font-medium">
+                  {count}
+                </span>
+              )}
             </button>
           );
         })}
