@@ -1,28 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Package, Ticket, Shield, ArrowRight, Loader2, Newspaper } from "lucide-react";
+import { Shield, ArrowRight, Loader2 } from "lucide-react";
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import DashboardLayout from "../components/DashboardLayout";
-
-interface ModuleDef {
-  id: number;
-  name: string;
-  slug: string;
-  description: string | null;
-  status: string;
-}
-
-interface AccessRecord {
-  module_id: number;
-  status: string;
-}
-
-const iconMap: Record<string, typeof Package> = {
-  "asset-tagging": Package,
-  ticketing: Ticket,
-  "news-editor": Newspaper,
-};
+import { moduleIconMap, type ModuleDef, type AccessRecord } from "../lib/modules";
+import { Package } from "lucide-react";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -94,7 +77,7 @@ export default function Dashboard() {
           )}
 
           {approvedModules.map((mod) => {
-            const Icon = iconMap[mod.slug] ?? Package;
+            const Icon = moduleIconMap[mod.slug] ?? Package;
             return (
               <button
                 key={mod.id}

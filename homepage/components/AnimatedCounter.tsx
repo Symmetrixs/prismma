@@ -46,10 +46,12 @@ export default function AnimatedCounter({ value, label, continuous = false }: An
 
   return (
     <div ref={ref} className="text-center px-1 shrink-0">
-      <p className="font-display text-2xl md:text-4xl font-semibold text-brand-navy tabular-nums whitespace-nowrap">
+      <p className="font-display text-[20px] sm:text-[26px] md:text-[34px] font-semibold text-brand-navy tabular-nums whitespace-nowrap">
         {display.toLocaleString()}
       </p>
-      <p className="mt-2 text-sm md:text-base text-body uppercase tracking-wide whitespace-nowrap">{label}</p>
+      <p className="mt-1.5 text-[10px] sm:text-[11px] md:text-[13px] text-body uppercase tracking-wide whitespace-nowrap">
+        {label}
+      </p>
     </div>
   );
 }

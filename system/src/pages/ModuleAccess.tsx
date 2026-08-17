@@ -1,32 +1,17 @@
 import { useState, useEffect } from "react";
-import { Package, Ticket, Newspaper, Clock, Check } from "lucide-react";
+import { Package, Clock, Check, RotateCcw } from "lucide-react";
 import { api } from "../lib/api";
 import DashboardLayout from "../components/DashboardLayout";
-
-interface ModuleDef {
-  id: number;
-  name: string;
-  slug: string;
-  description: string | null;
-  status: string;
-}
-
-interface AccessRecord {
-  module_id: number;
-  status: string;
-}
-
-const iconMap: Record<string, typeof Package> = {
-  "asset-tagging": Package,
-  ticketing: Ticket,
-  "news-editor": Newspaper,
-};
+import { moduleIconMap } from "../lib/modules";
+import type { ModuleDef, AccessRecord } from "../lib/modules";
+import { useToast } from "../context/ToastContext";
 
 export default function ModuleAccess() {
   const [modules, setModules] = useState<ModuleDef[]>([]);
   const [access, setAccess] = useState<AccessRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [requestingId, setRequestingId] = useState<number | null>(null);
+  const toast = useToast();
 
   async function load() {
     const [mods, acc] = await Promise.all([api.getModules(), api.getMyModuleAccess()]);
@@ -48,8 +33,9 @@ export default function ModuleAccess() {
     try {
       await api.requestModuleAccess(moduleId);
       await load();
+      toast.success("Access requested");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Request failed");
+      toast.error(err instanceof Error ? err.message : "Request failed");
     } finally {
       setRequestingId(null);
     }
@@ -71,7 +57,7 @@ export default function ModuleAccess() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
         {modules.map((mod) => {
           const status = accessFor(mod.id);
-          const Icon = iconMap[mod.slug] ?? Package;
+          const Icon = moduleIconMap[mod.slug] ?? Package;
           const isComingSoon = mod.status === "coming_soon";
 
           return (
@@ -97,6 +83,14 @@ export default function ModuleAccess() {
                   className="text-sm text-red-600 mt-4 hover:underline disabled:opacity-50"
                 >
                   Rejected, request again
+                </button>
+              ) : status === "revoked" ? (
+                <button
+                  onClick={() => handleRequest(mod.id)}
+                  disabled={requestingId === mod.id}
+                  className="flex items-center gap-1.5 text-sm text-amber-600 mt-4 hover:underline disabled:opacity-50"
+                >
+                  <RotateCcw size={14} /> Access revoked, request again
                 </button>
               ) : (
                 <button

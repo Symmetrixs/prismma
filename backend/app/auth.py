@@ -42,6 +42,16 @@ class PasswordResetInitiate(BaseModel):
     email: EmailStr
 
 
+class PasswordResetRead(BaseModel):
+    id: int
+    user_id: int
+    user_name: str
+    user_email: str
+    status: str
+    requested_at: datetime | None
+    decided_at: datetime | None
+
+
 @router.post("/register")
 @limiter.limit("5/hour")
 def register(request: Request, payload: RegisterRequest, db: Session = Depends(get_db)):
@@ -50,10 +60,12 @@ def register(request: Request, payload: RegisterRequest, db: Session = Depends(g
         raise HTTPException(status_code=400, detail=password_error)
 
     existing = db.query(User).filter(
-        (User.email == payload.email) | (User.employee_id == payload.employee_id)
+        (User.email == payload.email) | (
+            User.employee_id == payload.employee_id)
     ).first()
     if existing:
-        raise HTTPException(status_code=400, detail="Email or employee ID already in use")
+        raise HTTPException(
+            status_code=400, detail="Email or employee ID already in use")
 
     user = User(
         name=payload.name,
@@ -75,25 +87,31 @@ def register(request: Request, payload: RegisterRequest, db: Session = Depends(g
 @limiter.limit("10/minute")
 def login(request: Request, payload: LoginRequest, response: Response, db: Session = Depends(get_db)):
     user = db.query(User).filter(
-        (User.email == payload.identifier) | (User.employee_id == payload.identifier)
+        (User.email == payload.identifier) | (
+            User.employee_id == payload.identifier)
     ).first()
 
     if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     if user.account_locked:
-        raise HTTPException(status_code=403, detail="Account locked. Contact an admin to unlock it.")
+        raise HTTPException(
+            status_code=403, detail="Account locked. Contact an admin to unlock it.")
 
     if user.locked_until and user.locked_until > datetime.utcnow():
-        minutes_left = int((user.locked_until - datetime.utcnow()).total_seconds() / 60) + 1
-        raise HTTPException(status_code=403, detail=f"Too many attempts. Try again in {minutes_left} minute(s).")
+        minutes_left = int(
+            (user.locked_until - datetime.utcnow()).total_seconds() / 60) + 1
+        raise HTTPException(
+            status_code=403, detail=f"Too many attempts. Try again in {minutes_left} minute(s).")
 
     if user.account_status == "pending":
         raise HTTPException(status_code=403, detail="Account pending approval")
     if user.account_status == "rejected":
-        raise HTTPException(status_code=403, detail=f"Registration rejected: {user.rejection_reason or 'no reason given'}")
+        raise HTTPException(
+            status_code=403, detail=f"Registration rejected: {user.rejection_reason or 'no reason given'}")
     if user.account_status == "disabled":
-        raise HTTPException(status_code=403, detail="This account has been disabled")
+        raise HTTPException(
+            status_code=403, detail="This account has been disabled")
 
     if not verify_password(payload.password, user.password_hash):
         user.failed_login_count += 1
@@ -102,10 +120,12 @@ def login(request: Request, payload: LoginRequest, response: Response, db: Sessi
             user.failed_login_count = 0
             if user.lockout_stage == 0:
                 user.lockout_stage = 1
-                user.locked_until = datetime.utcnow() + timedelta(minutes=settings.LOGIN_COOLDOWN_STAGE_1_MINUTES)
+                user.locked_until = datetime.utcnow(
+                ) + timedelta(minutes=settings.LOGIN_COOLDOWN_STAGE_1_MINUTES)
             elif user.lockout_stage == 1:
                 user.lockout_stage = 2
-                user.locked_until = datetime.utcnow() + timedelta(minutes=settings.LOGIN_COOLDOWN_STAGE_2_MINUTES)
+                user.locked_until = datetime.utcnow(
+                ) + timedelta(minutes=settings.LOGIN_COOLDOWN_STAGE_2_MINUTES)
             else:
                 user.account_locked = True
 
@@ -118,7 +138,8 @@ def login(request: Request, payload: LoginRequest, response: Response, db: Sessi
     user.last_login_at = datetime.utcnow()
     db.commit()
 
-    access_token = create_access_token({"sub": str(user.id), "role": user.role})
+    access_token = create_access_token(
+        {"sub": str(user.id), "role": user.role})
     refresh_token = create_refresh_token({"sub": str(user.id)})
 
     response.set_cookie(
@@ -142,17 +163,20 @@ def refresh(request: Request, db: Session = Depends(get_db)):
 
     payload = decode_token(token)
     if not payload or payload.get("type") != "refresh":
-        raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
+        raise HTTPException(
+            status_code=401, detail="Invalid or expired refresh token")
 
     user_id = payload.get("sub")
     if user_id is None:
-        raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
+        raise HTTPException(
+            status_code=401, detail="Invalid or expired refresh token")
 
     user = db.query(User).filter(User.id == int(user_id)).first()
     if not user or user.account_status != "active":
         raise HTTPException(status_code=401, detail="Account not available")
 
-    access_token = create_access_token({"sub": str(user.id), "role": user.role})
+    access_token = create_access_token(
+        {"sub": str(user.id), "role": user.role})
     return TokenResponse(access_token=access_token)
 
 
@@ -169,7 +193,8 @@ def change_password(
     current_user: User = Depends(get_current_user),
 ):
     if not verify_password(payload.current_password, current_user.password_hash):
-        raise HTTPException(status_code=400, detail="Current password is incorrect")
+        raise HTTPException(
+            status_code=400, detail="Current password is incorrect")
 
     password_error = validate_password_strength(payload.new_password)
     if password_error:
@@ -193,12 +218,25 @@ def request_password_reset(request: Request, payload: PasswordResetInitiate, db:
     return {"message": "If that account exists, a reset request has been submitted for review."}
 
 
-@router.get("/password-reset/pending")
+@router.get("/password-reset/pending", response_model=list[PasswordResetRead])
 def list_pending_resets(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
-    return db.query(PasswordResetRequest).filter(PasswordResetRequest.status == "pending").all()
+    rows = db.query(PasswordResetRequest).filter(
+        PasswordResetRequest.status == "pending").all()
+    return [
+        PasswordResetRead(
+            id=r.id,
+            user_id=r.user_id,
+            user_name=r.user.name,
+            user_email=r.user.email,
+            status=r.status,
+            requested_at=r.requested_at,
+            decided_at=r.decided_at,
+        )
+        for r in rows
+    ]
 
 
 @router.post("/password-reset/{request_id}/approve")
@@ -207,7 +245,8 @@ def approve_password_reset(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
-    reset_request = db.query(PasswordResetRequest).filter(PasswordResetRequest.id == request_id).first()
+    reset_request = db.query(PasswordResetRequest).filter(
+        PasswordResetRequest.id == request_id).first()
     if not reset_request:
         raise HTTPException(status_code=404, detail="Request not found")
 

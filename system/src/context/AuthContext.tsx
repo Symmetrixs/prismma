@@ -34,7 +34,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const profile = await api.getMyProfile();
       setUser(profile);
-    } catch {
+    } catch (err) {
+      if (err instanceof TypeError) {
+        return;
+      }
       setUser(null);
     }
   }

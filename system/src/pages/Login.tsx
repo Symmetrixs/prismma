@@ -30,7 +30,7 @@ export default function Login() {
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center text-center mb-8">
           <img src="/assets/logos/prismma_main_logo.png" alt="Prismma Express" className="h-9 mb-6" />
-          <h1 className="font-display text-2xl font-semibold text-brand-navy">Prismma System</h1>
+          <h1 className="font-display text-2xl font-semibold text-brand-navy">Prismma Internal Portal</h1>
           <p className="mt-2 text-body">Sign in with your email or employee ID</p>
         </div>
 

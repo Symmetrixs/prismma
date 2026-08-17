@@ -9,7 +9,7 @@ interface PageBannerProps {
 
 export default function PageBanner({ eyebrow, title, description, image }: PageBannerProps) {
   return (
-    <section className="relative h-[380px] md:h-[440px] flex items-end overflow-hidden">
+    <section className="relative min-h-[380px] md:min-h-[440px] flex items-end overflow-hidden">
       <img
         src={image}
         alt=""

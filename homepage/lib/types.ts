@@ -26,4 +26,10 @@ export interface ContactFormPayload {
   email: string;
   phone?: string;
   message: string;
+  subject?: string;
+  freight_type?: string;
+  origin?: string;
+  destination?: string;
+  cargo_details?: string;
+  position?: string;
 }

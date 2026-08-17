@@ -4,6 +4,7 @@ import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import DashboardLayout from "../components/DashboardLayout";
 import PasswordStrength, { isPasswordStrong } from "../components/PasswordStrength";
+import { useToast } from "../context/ToastContext";
 
 interface Department {
   id: number;
@@ -12,6 +13,7 @@ interface Department {
 
 export default function Profile() {
   const { user, refreshUser } = useAuth();
+  const toast = useToast();
   const [departments, setDepartments] = useState<Department[]>([]);
   const [form, setForm] = useState({
     name: "",
@@ -23,7 +25,7 @@ export default function Profile() {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [pwForm, setPwForm] = useState({ current_password: "", new_password: "" });
+  const [pwForm, setPwForm] = useState({ current_password: "", new_password: "", confirm_password: "" });
   const [pwError, setPwError] = useState<string | null>(null);
   const [pwSaved, setPwSaved] = useState(false);
 
@@ -74,6 +76,7 @@ export default function Profile() {
       });
       await refreshUser();
       setSaved(true);
+      toast.success("Profile updated");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed");
     }
@@ -87,10 +90,15 @@ export default function Profile() {
       setPwError("New password does not meet the minimum requirements");
       return;
     }
+    if (pwForm.new_password !== pwForm.confirm_password) {
+      setPwError("New password and confirmation do not match");
+      return;
+    }
     try {
       await api.changePassword(pwForm.current_password, pwForm.new_password);
-      setPwForm({ current_password: "", new_password: "" });
+      setPwForm({ current_password: "", new_password: "", confirm_password: "" });
       setPwSaved(true);
+      toast.success("Password updated");
     } catch (err) {
       setPwError(err instanceof Error ? err.message : "Password change failed");
     }
@@ -219,6 +227,17 @@ export default function Profile() {
               className="w-full rounded-md border border-black/10 px-4 py-2.5 text-sm"
             />
             <PasswordStrength password={pwForm.new_password} />
+          </div>
+
+          <div>
+            <label className="text-sm text-body block mb-1">Confirm New Password</label>
+            <input
+              required
+              type="password"
+              value={pwForm.confirm_password}
+              onChange={(e) => setPwForm({ ...pwForm, confirm_password: e.target.value })}
+              className="w-full rounded-md border border-black/10 px-4 py-2.5 text-sm"
+            />
           </div>
 
           <button
