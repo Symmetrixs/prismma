@@ -74,6 +74,9 @@ def require_module_access(module_slug: str):
         if not module:
             raise HTTPException(status_code=404, detail="Module not configured")
 
+        if module.status != "active":
+            raise HTTPException(status_code=403, detail=f"{module.name} is currently unavailable")
+
         access = (
             db.query(ModuleAccess)
             .filter(

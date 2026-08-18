@@ -63,7 +63,7 @@ export default function ModuleAccess() {
 
       {isSuperadmin ? (
         <div className="bg-surface rounded-xl border border-border/10 p-10 text-center max-w-md">
-          <div className="mx-auto mb-4 flex items-center justify-center w-12 h-12 rounded-full bg-brand-navy/10 text-heading">
+          <div className="mx-auto mb-4 flex items-center justify-center w-12 h-12 rounded-full bg-brand-navy/10 dark:bg-brand-navy/30 text-heading">
             <ShieldCheck size={22} />
           </div>
           <p className="text-body">
@@ -76,16 +76,21 @@ export default function ModuleAccess() {
           const status = accessFor(mod.id);
           const Icon = moduleIconMap[mod.slug] ?? Package;
           const isComingSoon = mod.status === "coming_soon";
+          const isDisabled = mod.status === "disabled";
 
           return (
             <div key={mod.id} className="rounded-xl bg-surface border border-border/10 p-6">
-              <div className="inline-flex items-center justify-center w-11 h-11 rounded-lg bg-brand-orange/10 text-brand-orange mb-4">
+              <div className="inline-flex items-center justify-center w-11 h-11 rounded-lg bg-brand-orange/10 dark:bg-brand-orange/20 text-brand-orange mb-4">
                 <Icon size={22} />
               </div>
               <h3 className="font-display font-medium text-heading">{mod.name}</h3>
               <p className="text-sm text-body mt-1">{mod.description}</p>
 
-              {status === "approved" ? (
+              {status === "approved" && isDisabled ? (
+                <span className="text-sm text-amber-600 mt-4 block">
+                  Access granted, temporarily unavailable for maintenance
+                </span>
+              ) : status === "approved" ? (
                 <span className="inline-flex items-center gap-1.5 text-sm text-green-600 mt-4">
                   <Check size={14} /> Access granted
                 </span>
@@ -97,7 +102,7 @@ export default function ModuleAccess() {
                 <div className="mt-4">
                   <button
                     onClick={() => handleRequest(mod.id)}
-                    disabled={requestingId === mod.id}
+                    disabled={requestingId === mod.id || isComingSoon || isDisabled}
                     className="text-sm text-red-600 hover:underline disabled:opacity-50"
                   >
                     Rejected, request again
@@ -109,15 +114,19 @@ export default function ModuleAccess() {
               ) : status === "revoked" ? (
                 <button
                   onClick={() => handleRequest(mod.id)}
-                  disabled={requestingId === mod.id}
+                  disabled={requestingId === mod.id || isComingSoon || isDisabled}
                   className="flex items-center gap-1.5 text-sm text-amber-600 mt-4 hover:underline disabled:opacity-50"
                 >
                   <RotateCcw size={14} /> Access revoked, request again
                 </button>
+              ) : isComingSoon ? (
+                <span className="text-sm text-muted mt-4 block">Coming Soon</span>
+              ) : isDisabled ? (
+                <span className="text-sm text-muted mt-4 block">Currently Unavailable</span>
               ) : (
                 <button
                   onClick={() => handleRequest(mod.id)}
-                  disabled={requestingId === mod.id || isComingSoon}
+                  disabled={requestingId === mod.id}
                   className="text-sm text-heading font-medium mt-4 hover:underline disabled:opacity-50"
                 >
                   {requestingId === mod.id ? "Requesting..." : "Request Access"}

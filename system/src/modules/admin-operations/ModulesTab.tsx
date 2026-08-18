@@ -68,6 +68,7 @@ export default function ModulesTab() {
               >
                 <option value="active">Active</option>
                 <option value="coming_soon">Coming Soon</option>
+                <option value="disabled">Disabled (maintenance)</option>
               </select>
               <button onClick={() => remove(m.id)} className="text-xs text-red-600 hover:underline">
                 Remove

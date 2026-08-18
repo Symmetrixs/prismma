@@ -90,7 +90,7 @@ export default function Dashboard() {
                   {pendingCount}
                 </span>
               )}
-              <div className="inline-flex items-center justify-center w-11 h-11 rounded-lg bg-brand-navy/10 text-heading mb-4">
+              <div className="inline-flex items-center justify-center w-11 h-11 rounded-lg bg-brand-navy/10 dark:bg-brand-navy/30 text-heading mb-4">
                 <Shield size={22} />
               </div>
               <h3 className="font-display font-medium text-heading">Admin Operations</h3>
@@ -111,7 +111,7 @@ export default function Dashboard() {
                 onClick={() => navigate(`/modules/${mod.slug}`)}
                 className="text-left rounded-xl bg-surface border border-border/10 p-6 hover:shadow-md transition-shadow"
               >
-                <div className="inline-flex items-center justify-center w-11 h-11 rounded-lg bg-brand-orange/10 text-brand-orange mb-4">
+                <div className="inline-flex items-center justify-center w-11 h-11 rounded-lg bg-brand-orange/10 dark:bg-brand-orange/20 text-brand-orange mb-4">
                   <Icon size={22} />
                 </div>
                 <h3 className="font-display font-medium text-heading">{mod.name}</h3>

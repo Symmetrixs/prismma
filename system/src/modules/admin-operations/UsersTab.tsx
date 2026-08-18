@@ -85,7 +85,7 @@ export default function UsersTab({ isSuperadmin }: { isSuperadmin: boolean }) {
   }, []);
 
   const visible = useMemo(
-    () => users.filter((u) => u.account_status === "active" || u.account_status === "pending"),
+    () => users.filter((u) => u.account_status !== "rejected"),
     [users]
   );
 
@@ -325,7 +325,11 @@ export default function UsersTab({ isSuperadmin }: { isSuperadmin: boolean }) {
                   <td className="px-4 py-3">
                     <span
                       className={`text-xs px-2 py-1 rounded-full ${
-                        u.account_status === "active" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
+                        u.account_status === "active"
+                          ? "bg-green-100 text-green-700"
+                          : u.account_status === "disabled"
+                          ? "bg-red-100 text-red-700"
+                          : "bg-amber-100 text-amber-700"
                       }`}
                     >
                       {u.account_status}
@@ -391,7 +395,11 @@ export default function UsersTab({ isSuperadmin }: { isSuperadmin: boolean }) {
       {confirmBulkDisable && (
         <ConfirmDialog
           title="Disable selected accounts?"
-          message={`This will disable ${selectedIds.size} account${selectedIds.size !== 1 ? "s" : ""}. They will lose access until re-enabled by a superadmin.`}
+          message={
+            filtered.some((u) => selectedIds.has(u.id) && u.role === "superadmin")
+              ? `This selection includes a superadmin account. Disabling it removes their access immediately, and only another superadmin can re-enable it. This will affect ${selectedIds.size} account${selectedIds.size !== 1 ? "s" : ""} total. Are you sure?`
+              : `This will disable ${selectedIds.size} account${selectedIds.size !== 1 ? "s" : ""}. They will lose access until re-enabled by a superadmin.`
+          }
           confirmLabel="Disable"
           onConfirm={bulkDisable}
           onCancel={() => setConfirmBulkDisable(false)}

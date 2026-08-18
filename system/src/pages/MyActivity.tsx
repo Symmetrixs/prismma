@@ -7,10 +7,12 @@ import EmptyState from "../components/EmptyState";
 
 const TYPE_OPTIONS = [
   { value: "", label: "All types" },
+  { value: "created", label: "Account created" },
   { value: "registration_approved", label: "Registration approved" },
   { value: "registration_rejected", label: "Registration rejected" },
   { value: "disabled", label: "Account disabled" },
   { value: "enabled", label: "Account enabled" },
+  { value: "unlocked", label: "Account unlocked" },
   { value: "blocked", label: "Account blocked" },
   { value: "unblocked", label: "Account unblocked" },
   { value: "role_change", label: "Role changed" },
@@ -25,6 +27,8 @@ export default function MyActivity() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [type, setType] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [sortDesc, setSortDesc] = useState(true);
 
   useEffect(() => {
@@ -36,8 +40,16 @@ export default function MyActivity() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
+    const fromTime = dateFrom ? new Date(dateFrom).getTime() : null;
+    const toTime = dateTo ? new Date(dateTo + "T23:59:59").getTime() : null;
+
     let list = entries.filter((e) => {
       if (type && e.type !== type) return false;
+      if (e.created_at) {
+        const t = new Date(e.created_at).getTime();
+        if (fromTime !== null && t < fromTime) return false;
+        if (toTime !== null && t > toTime) return false;
+      }
       if (!q) return true;
       return (
         e.label?.toLowerCase().includes(q) ||
@@ -51,7 +63,7 @@ export default function MyActivity() {
       return sortDesc ? bv - av : av - bv;
     });
     return list;
-  }, [entries, search, type, sortDesc]);
+  }, [entries, search, type, dateFrom, dateTo, sortDesc]);
 
   return (
     <DashboardLayout>
@@ -66,7 +78,7 @@ export default function MyActivity() {
         <>
           <div className="flex flex-wrap items-center gap-3 mb-4">
             <div className="relative flex-1 min-w-[220px] max-w-sm">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-body" />
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
               <input
                 placeholder="Search"
                 value={search}
@@ -77,12 +89,27 @@ export default function MyActivity() {
             <select
               value={type}
               onChange={(e) => setType(e.target.value)}
-              className="rounded-md border border-border/10 px-3 py-2.5 text-sm bg-surface"
+              className="rounded-md border border-border/10 px-3 py-2.5 text-sm bg-surface text-body"
             >
               {TYPE_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>{o.label}</option>
               ))}
             </select>
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="rounded-md border border-border/10 px-3 py-2.5 text-sm bg-surface text-body"
+              />
+              <span className="text-muted text-sm">to</span>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="rounded-md border border-border/10 px-3 py-2.5 text-sm bg-surface text-body"
+              />
+            </div>
             <button
               onClick={() => setSortDesc(!sortDesc)}
               className="text-sm text-body px-3 py-2.5 rounded-md border border-border/10 hover:bg-surface-alt"

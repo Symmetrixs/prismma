@@ -10,9 +10,11 @@ def log_module_action(
     action: str,
     performed_by: int,
     detail: str | None = None,
+    target_id: int | None = None,
 ) -> None:
     db.add(ModuleActionLog(
         module=module,
+        target_id=target_id,
         target_label=target_label,
         action=action,
         detail=detail,

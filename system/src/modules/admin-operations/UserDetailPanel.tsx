@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Unlock, Ban, ShieldOff, Copy, ShieldCheck, AlertTriangle } from "lucide-react";
+import { X, Unlock, Ban, ShieldOff, Copy, ShieldCheck, AlertTriangle, RotateCcw } from "lucide-react";
 import { api } from "../../lib/api";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import { useToast } from "../../context/ToastContext";
@@ -23,6 +23,7 @@ export default function UserDetailPanel({ userId, isSuperadmin, onClose, onChang
   const [departments, setDepartments] = useState<any[]>([]);
   const [modules, setModules] = useState<any[]>([]);
   const [pendingRole, setPendingRole] = useState<string | null>(null);
+  const [confirmDisable, setConfirmDisable] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [grantModuleId, setGrantModuleId] = useState("");
@@ -30,7 +31,7 @@ export default function UserDetailPanel({ userId, isSuperadmin, onClose, onChang
   const toast = useToast();
 
   useEscapeKey(() => {
-    if (!pendingRole) onClose();
+    if (!pendingRole && !confirmDisable) onClose();
   });
 
   async function load() {
@@ -85,6 +86,17 @@ export default function UserDetailPanel({ userId, isSuperadmin, onClose, onChang
       onClose();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not disable account");
+    }
+  }
+
+  async function reEnable() {
+    try {
+      await api.enableUser(userId);
+      toast.success("Account re-enabled");
+      load();
+      onChanged();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not re-enable account");
     }
   }
 
@@ -264,10 +276,20 @@ export default function UserDetailPanel({ userId, isSuperadmin, onClose, onChang
             <div className="rounded-lg border border-border/10 bg-surface-alt p-4">
               <p className="text-xs font-medium text-muted uppercase tracking-wide mb-3">Account Status</p>
               <div className="flex flex-wrap items-center gap-4">
-                <button onClick={disable} className="text-sm text-red-600 hover:underline">
-                  Disable account
-                </button>
-                <button onClick={toggleBlock} className="flex items-center gap-1.5 text-sm text-body hover:underline">
+                {detail.account_status === "disabled" ? (
+                  isSuperadmin ? (
+                    <button onClick={reEnable} className="flex items-center gap-1.5 text-sm text-green-600 hover:underline">
+                      <RotateCcw size={14} /> Re-enable account
+                    </button>
+                  ) : (
+                    <span className="text-sm text-muted">Disabled, only a superadmin can re-enable it</span>
+                  )
+                ) : (
+                  <button onClick={() => setConfirmDisable(true)} className="text-sm text-red-600 hover:underline">
+                    Disable account
+                  </button>
+                )}
+                <button onClick={toggleBlock} className="flex items-center gap-1.5 text-sm text-body hover:underline" title="Prevents spamming password reset and module access requests, does not affect login">
                   <Ban size={14} /> {detail.is_blocked ? "Unblock" : "Block"}
                 </button>
                 {detail.account_locked && (
@@ -364,6 +386,23 @@ export default function UserDetailPanel({ userId, isSuperadmin, onClose, onChang
           confirmLabel="Change role"
           onConfirm={confirmRoleChange}
           onCancel={() => setPendingRole(null)}
+        />
+      )}
+
+      {confirmDisable && (
+        <ConfirmDialog
+          title="Disable this account?"
+          message={
+            viewingSuperadmin
+              ? `${detail?.name} is a superadmin. Disabling this account removes their access immediately, and only another superadmin can re-enable it. Are you sure?`
+              : `${detail?.name} will lose access immediately. This can be reversed later by re-enabling the account.`
+          }
+          confirmLabel="Disable"
+          onConfirm={() => {
+            setConfirmDisable(false);
+            disable();
+          }}
+          onCancel={() => setConfirmDisable(false)}
         />
       )}
     </div>

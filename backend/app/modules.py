@@ -74,7 +74,7 @@ def update_module_status(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_superadmin),
 ):
-    if payload.status not in ("active", "coming_soon"):
+    if payload.status not in ("active", "coming_soon", "disabled"):
         raise HTTPException(status_code=400, detail="Invalid status")
     module = db.query(Module).filter(Module.id == module_id).first()
     if not module:

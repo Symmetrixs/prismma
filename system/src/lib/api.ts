@@ -211,10 +211,21 @@ export const api = {
 
   getAssets: () => request("/assets"),
   getAsset: (id: number) => request(`/assets/${id}`),
+  getAssetHistory: (id: number) => request(`/assets/${id}/history`),
   createAsset: (payload: Record<string, unknown>) =>
     request("/assets", { method: "POST", body: JSON.stringify(payload) }),
   updateAsset: (id: number, payload: Record<string, unknown>) =>
     request(`/assets/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
+  assignAsset: (id: number, payload: Record<string, unknown>) =>
+    request(`/assets/${id}/assign`, { method: "POST", body: JSON.stringify(payload) }),
+  getUsersSummary: () => request("/assets/users-summary"),
+  createSubmission: (assetId: number, payload: Record<string, unknown>) =>
+    request(`/assets/${assetId}/submissions`, { method: "POST", body: JSON.stringify(payload) }),
+  getSubmissions: (status?: string) =>
+    request(`/assets/submissions/list${status ? `?status=${status}` : ""}`),
+  reviewSubmission: (id: number, finalStatus: string) =>
+    request(`/assets/submissions/${id}/review`, { method: "POST", body: JSON.stringify({ final_status: finalStatus }) }),
+  uploadAssetPhoto: (file: File) => uploadFile("/uploads/asset-photo", file),
   addAssetNote: (assetId: number, content: string) =>
     request(`/assets/${assetId}/notes`, { method: "POST", body: JSON.stringify({ content }) }),
   editAssetNote: (noteId: number, content: string) =>

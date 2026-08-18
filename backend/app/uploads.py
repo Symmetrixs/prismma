@@ -44,3 +44,12 @@ async def upload_profile_picture(
 ):
     url = await _validate_and_upload(file, "profile-pictures", {"jpg", "png", "webp"})
     return {"url": url}
+
+
+@router.post("/asset-photo")
+async def upload_asset_photo(
+    file: UploadFile = File(...),
+    current_user: User = Depends(require_module_access("asset-tagging")),
+):
+    url = await _validate_and_upload(file, "asset-photos", {"jpg", "png", "webp"})
+    return {"url": url}

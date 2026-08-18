@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { LogIn, ArrowLeft } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import PasswordInput from "../components/PasswordInput";
+import Logo from "../components/Logo";
 
 export default function Login() {
   const { login } = useAuth();
@@ -36,7 +37,7 @@ export default function Login() {
           >
             <ArrowLeft size={14} /> Back to Prismma Express
           </a>
-          <img src="/assets/logos/prismma_main_logo.png" alt="Prismma Express" className="h-9 mb-6" />
+          <Logo className="h-9 mb-6" />
           <h1 className="font-display text-2xl font-semibold text-heading">Prismma Internal Portal</h1>
           <p className="mt-2 text-body">Sign in with your email or employee ID</p>
         </div>

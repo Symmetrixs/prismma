@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Search, Download } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { api } from "../../lib/api";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import { downloadCsv } from "../../lib/csv";
@@ -56,6 +57,17 @@ export default function AnalyticsTab({ isSuperadmin }: { isSuperadmin: boolean }
     [rows, isSuperadmin]
   );
 
+  const chartData = useMemo(
+    () =>
+      filtered.map((r) => ({
+        name: r.department_name,
+        Active: r.active,
+        Pending: r.pending,
+        ...(isSuperadmin ? { Disabled: r.disabled ?? 0 } : {}),
+      })),
+    [filtered, isSuperadmin]
+  );
+
   if (loading) return <LoadingSpinner />;
 
   const columns: { key: SortKey; label: string }[] = [
@@ -88,12 +100,39 @@ export default function AnalyticsTab({ isSuperadmin }: { isSuperadmin: boolean }
           <p className="text-2xl font-display font-semibold text-amber-600">{totals.pending}</p>
         </div>
         {isSuperadmin && (
-          <div className="bg-surface rounded-xl border border-border/10 p-4">
-            <p className="text-xs text-body">Disabled</p>
-            <p className="text-2xl font-display font-semibold text-gray-500">{totals.disabled}</p>
+          <div className={`rounded-xl border p-4 ${totals.disabled > 0 ? "bg-red-50 border-red-200" : "bg-surface border-border/10"}`}>
+            <p className={`text-xs ${totals.disabled > 0 ? "text-red-600" : "text-body"}`}>Disabled</p>
+            <p className={`text-2xl font-display font-semibold ${totals.disabled > 0 ? "text-red-600" : "text-heading"}`}>
+              {totals.disabled}
+            </p>
           </div>
         )}
       </div>
+
+      {chartData.length > 0 && (
+        <div className="bg-surface rounded-xl border border-border/10 p-4 mb-6">
+          <p className="text-sm font-medium text-heading mb-3">Department Breakdown</p>
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--color-border) / 0.1)" />
+              <XAxis dataKey="name" tick={{ fontSize: 12, fill: "rgb(var(--color-body))" }} interval={0} angle={-20} textAnchor="end" height={60} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: "rgb(var(--color-body))" }} />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "rgb(var(--color-surface))",
+                  border: "1px solid rgb(var(--color-border) / 0.15)",
+                  borderRadius: 8,
+                  fontSize: 13,
+                }}
+              />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
+              <Bar dataKey="Active" fill="#16A34A" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="Pending" fill="#F59E0B" radius={[4, 4, 0, 0]} />
+              {isSuperadmin && <Bar dataKey="Disabled" fill="#DC2626" radius={[4, 4, 0, 0]} />}
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
       <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
         <div className="relative max-w-sm flex-1 min-w-[220px]">
@@ -127,12 +166,22 @@ export default function AnalyticsTab({ isSuperadmin }: { isSuperadmin: boolean }
           </thead>
           <tbody>
             {filtered.map((r) => (
-              <tr key={r.department_id ?? "none"} className="border-t border-border/10">
+              <tr key={r.department_id ?? "none"} className={`border-t border-border/10 ${r.disabled > 0 ? "bg-red-50/50" : ""}`}>
                 <td className="px-4 py-3 font-medium text-heading">{r.department_name}</td>
                 <td className="px-4 py-3">{r.total}</td>
                 <td className="px-4 py-3">{r.active}</td>
                 <td className="px-4 py-3">{r.pending}</td>
-                {isSuperadmin && <td className="px-4 py-3">{r.disabled ?? 0}</td>}
+                {isSuperadmin && (
+                  <td className="px-4 py-3">
+                    {r.disabled > 0 ? (
+                      <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-1.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                        {r.disabled}
+                      </span>
+                    ) : (
+                      <span className="text-body">0</span>
+                    )}
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>

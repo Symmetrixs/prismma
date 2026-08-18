@@ -113,6 +113,7 @@ class ModuleActionLog(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     module: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    target_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     target_label: Mapped[str] = mapped_column(String(255), nullable=False)
     action: Mapped[str] = mapped_column(String(50), nullable=False)
     detail: Mapped[str | None] = mapped_column(Text, nullable=True)

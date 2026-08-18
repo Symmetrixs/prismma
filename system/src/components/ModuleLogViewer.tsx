@@ -8,14 +8,17 @@ import { useEscapeKey } from "../lib/useEscapeKey";
 interface Props {
   moduleSlug: string;
   title: string;
-  onClose: () => void;
+  onClose?: () => void;
+  inline?: boolean;
 }
 
-export default function ModuleLogViewer({ moduleSlug, title, onClose }: Props) {
+export default function ModuleLogViewer({ moduleSlug, title, onClose, inline = false }: Props) {
   const [entries, setEntries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEscapeKey(onClose);
+  useEscapeKey(() => {
+    if (!inline && onClose) onClose();
+  });
 
   useEffect(() => {
     api.getModuleLog(moduleSlug).then((r) => {
@@ -23,6 +26,39 @@ export default function ModuleLogViewer({ moduleSlug, title, onClose }: Props) {
       setLoading(false);
     });
   }, [moduleSlug]);
+
+  const content = (
+    <>
+      {loading ? (
+        <LoadingSpinner />
+      ) : entries.length === 0 ? (
+        <EmptyState icon={History} message="Nothing recorded yet" />
+      ) : (
+        <div className="space-y-2">
+          {entries.map((e) => (
+            <div key={e.id} className="rounded-md border border-border/10 px-3 py-2.5 text-sm">
+              <p className="text-heading font-medium">
+                {e.action.replace(/_/g, " ")}: {e.target_label}
+              </p>
+              <p className="text-xs text-muted mt-0.5">
+                {e.actor_name ? `By ${e.actor_name}` : "System"}
+                {e.created_at ? ` · ${new Date(e.created_at).toLocaleString()}` : ""}
+              </p>
+              {e.detail && (
+                <p className="text-xs text-body mt-1 whitespace-pre-wrap border-t border-border/10 pt-1.5">
+                  {e.detail}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  );
+
+  if (inline) {
+    return <div>{content}</div>;
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
@@ -33,33 +69,7 @@ export default function ModuleLogViewer({ moduleSlug, title, onClose }: Props) {
             <X size={18} />
           </button>
         </div>
-
-        <div className="p-6">
-          {loading ? (
-            <LoadingSpinner />
-          ) : entries.length === 0 ? (
-            <EmptyState icon={History} message="Nothing recorded yet" />
-          ) : (
-            <div className="space-y-2">
-              {entries.map((e) => (
-                <div key={e.id} className="rounded-md border border-border/10 px-3 py-2.5 text-sm">
-                  <p className="text-heading font-medium">
-                    {e.action.replace(/_/g, " ")}: {e.target_label}
-                  </p>
-                  <p className="text-xs text-muted mt-0.5">
-                    {e.actor_name ? `By ${e.actor_name}` : "System"}
-                    {e.created_at ? ` · ${new Date(e.created_at).toLocaleString()}` : ""}
-                  </p>
-                  {e.detail && (
-                    <p className="text-xs text-body mt-1 whitespace-pre-wrap border-t border-border/10 pt-1.5">
-                      {e.detail}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <div className="p-6">{content}</div>
       </div>
     </div>
   );

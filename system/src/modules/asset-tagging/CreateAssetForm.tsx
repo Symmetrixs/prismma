@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { X, AlertTriangle } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { X, AlertTriangle, Camera } from "lucide-react";
 import { api } from "../../lib/api";
 import { useToast } from "../../context/ToastContext";
 import { useEscapeKey } from "../../lib/useEscapeKey";
@@ -8,29 +8,29 @@ import { STATUS_OPTIONS } from "./statusMeta";
 
 const EMPTY_FORM = {
   name: "",
+  description: "",
+  photo_url: "",
   category_id: "",
   serial_code: "",
   status: "in_storage",
   location: "",
-  assigned_person_id: "",
-  assigned_department_id: "",
 };
 
 interface Props {
   onClose: () => void;
-  onCreated: () => void;
+  onCreated: (newAssetId?: number) => void;
   onNavigateToAsset: (id: number) => void;
 }
 
 export default function CreateAssetForm({ onClose, onCreated, onNavigateToAsset }: Props) {
   const [categories, setCategories] = useState<any[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
-  const [departments, setDepartments] = useState<any[]>([]);
   const [form, setForm] = useState(EMPTY_FORM);
   const [error, setError] = useState<string | null>(null);
   const [conflict, setConflict] = useState<{ id: number; tagId: string } | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
 
   const hasChanges = JSON.stringify(form) !== JSON.stringify(EMPTY_FORM);
@@ -45,13 +45,26 @@ export default function CreateAssetForm({ onClose, onCreated, onNavigateToAsset 
   });
 
   useEffect(() => {
-    Promise.all([api.getAssetCategories(), api.getUsers(), api.getDepartments()]).then(([cats, u, depts]) => {
+    api.getAssetCategories().then((cats) => {
       setCategories(cats);
-      setUsers(u);
-      setDepartments(depts);
       if (cats.length > 0) setForm((f) => ({ ...f, category_id: cats[0].id }));
     });
   }, []);
+
+  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingPhoto(true);
+    try {
+      const { url } = await api.uploadAssetPhoto(file);
+      setForm((f) => ({ ...f, photo_url: url }));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Photo upload failed");
+    } finally {
+      setUploadingPhoto(false);
+      e.target.value = "";
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -59,17 +72,17 @@ export default function CreateAssetForm({ onClose, onCreated, onNavigateToAsset 
     setConflict(null);
     setSaving(true);
     try {
-      await api.createAsset({
+      const created = await api.createAsset({
         name: form.name,
+        description: form.description || undefined,
+        photo_url: form.photo_url || undefined,
         category_id: Number(form.category_id),
         serial_code: form.serial_code,
         status: form.status,
         location: form.location || undefined,
-        assigned_person_id: form.assigned_person_id ? Number(form.assigned_person_id) : undefined,
-        assigned_department_id: form.assigned_department_id ? Number(form.assigned_department_id) : undefined,
       });
-      toast.success("Asset created");
-      onCreated();
+      toast.success("Asset created, assign it to a person or department whenever you're ready");
+      onCreated(created.id);
       onClose();
     } catch (err: any) {
       if (err?.detail?.conflicting_asset_id) {
@@ -94,12 +107,36 @@ export default function CreateAssetForm({ onClose, onCreated, onNavigateToAsset 
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-3">
+          <div className="flex items-center gap-3">
+            {form.photo_url ? (
+              <img src={form.photo_url} alt="" className="w-14 h-14 rounded-lg object-cover" />
+            ) : (
+              <div className="w-14 h-14 rounded-lg bg-surface-alt" />
+            )}
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingPhoto}
+              className="flex items-center gap-1.5 text-sm text-body border border-border/10 rounded-md px-3 py-2 hover:bg-surface-alt disabled:opacity-50"
+            >
+              <Camera size={14} /> {uploadingPhoto ? "Uploading..." : "Add Photo (optional)"}
+            </button>
+            <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePhotoUpload} className="hidden" />
+          </div>
+
           <input
             required
-            placeholder="Name (e.g. MacBook Pro 14, Marketing)"
+            placeholder="Name (e.g. MacBook Pro 14)"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             className="w-full rounded-md border border-border/10 px-3 py-2.5 text-sm bg-surface text-body"
+          />
+          <textarea
+            placeholder="Description (e.g. usage notes, care instructions)"
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+            rows={2}
+            className="w-full rounded-md border border-border/10 px-3 py-2.5 text-sm bg-surface text-body resize-y"
           />
           <select
             required
@@ -129,31 +166,15 @@ export default function CreateAssetForm({ onClose, onCreated, onNavigateToAsset 
             ))}
           </select>
           <input
-            placeholder="Location (e.g. Store Room 4)"
+            placeholder="Location (optional)"
             value={form.location}
             onChange={(e) => setForm({ ...form, location: e.target.value })}
             className="w-full rounded-md border border-border/10 px-3 py-2.5 text-sm bg-surface text-body"
           />
-          <select
-            value={form.assigned_person_id}
-            onChange={(e) => setForm({ ...form, assigned_person_id: e.target.value, assigned_department_id: "" })}
-            className="w-full rounded-md border border-border/10 px-3 py-2.5 text-sm bg-surface text-body"
-          >
-            <option value="">Not assigned to a person</option>
-            {users.map((u: any) => (
-              <option key={u.id} value={u.id}>{u.name}</option>
-            ))}
-          </select>
-          <select
-            value={form.assigned_department_id}
-            onChange={(e) => setForm({ ...form, assigned_department_id: e.target.value, assigned_person_id: "" })}
-            className="w-full rounded-md border border-border/10 px-3 py-2.5 text-sm bg-surface text-body"
-          >
-            <option value="">Not assigned to a department</option>
-            {departments.map((d: any) => (
-              <option key={d.id} value={d.id}>{d.name}</option>
-            ))}
-          </select>
+
+          <p className="text-xs text-muted">
+            You can assign this to a person or department from the Assign section once it's created.
+          </p>
 
           {error && (
             <div className="flex items-start gap-2 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-2.5">

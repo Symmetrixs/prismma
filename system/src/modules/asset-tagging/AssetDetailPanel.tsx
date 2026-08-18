@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { X, Pencil, Trash2, AlertTriangle } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { X, Pencil, Trash2, AlertTriangle, Camera, ArrowLeftRight } from "lucide-react";
 import { api } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
@@ -10,25 +10,42 @@ import { STATUS_META, STATUS_OPTIONS } from "./statusMeta";
 interface Props {
   assetId: number;
   isAssetAdmin: boolean;
+  isSuperadmin: boolean;
   onClose: () => void;
   onChanged: () => void;
   onNavigateToAsset: (id: number) => void;
 }
 
-export default function AssetDetailPanel({ assetId, isAssetAdmin, onClose, onChanged, onNavigateToAsset }: Props) {
+type Tab = "overview" | "history" | "identity";
+
+export default function AssetDetailPanel({ assetId, isAssetAdmin, isSuperadmin, onClose, onChanged }: Props) {
   const { user } = useAuth();
   const toast = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const returnPhotoInputRef = useRef<HTMLInputElement>(null);
 
   const [asset, setAsset] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [categories, setCategories] = useState<any[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
-  const [departments, setDepartments] = useState<any[]>([]);
+  const [tab, setTab] = useState<Tab>("overview");
 
-  const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState<any>({});
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [locationDraft, setLocationDraft] = useState("");
+  const [savingLocation, setSavingLocation] = useState(false);
+
+  const [identityForm, setIdentityForm] = useState<any>({});
+  const [categories, setCategories] = useState<any[]>([]);
+  const [identityError, setIdentityError] = useState<string | null>(null);
+  const [savingIdentity, setSavingIdentity] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  const [history, setHistory] = useState<any[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
+
+  const [showReturnForm, setShowReturnForm] = useState(false);
+  const [returnStatus, setReturnStatus] = useState("under_repair");
+  const [returnDetail, setReturnDetail] = useState("");
+  const [returnPhoto, setReturnPhoto] = useState("");
+  const [uploadingReturnPhoto, setUploadingReturnPhoto] = useState(false);
+  const [submittingReturn, setSubmittingReturn] = useState(false);
 
   const [newNote, setNewNote] = useState("");
   const [addingNote, setAddingNote] = useState(false);
@@ -42,24 +59,16 @@ export default function AssetDetailPanel({ assetId, isAssetAdmin, onClose, onCha
 
   async function load() {
     setLoading(true);
-    const [a, cats, u, depts] = await Promise.all([
-      api.getAsset(assetId),
-      api.getAssetCategories(),
-      api.getUsers(),
-      api.getDepartments(),
-    ]);
+    const [a, cats] = await Promise.all([api.getAsset(assetId), api.getAssetCategories()]);
     setAsset(a);
     setCategories(cats);
-    setUsers(u);
-    setDepartments(depts);
-    setForm({
+    setLocationDraft(a.location || "");
+    setIdentityForm({
       name: a.name,
+      description: a.description || "",
       category_id: a.category_id,
       serial_code: a.serial_code,
-      status: a.status,
-      location: a.location || "",
-      assigned_person_id: a.assigned_person_id || "",
-      assigned_department_id: a.assigned_department_id || "",
+      photo_url: a.photo_url || "",
     });
     setLoading(false);
   }
@@ -68,31 +77,101 @@ export default function AssetDetailPanel({ assetId, isAssetAdmin, onClose, onCha
     load();
   }, [assetId]);
 
-  async function saveEdits() {
-    setSaving(true);
-    setSaveError(null);
-    try {
-      await api.updateAsset(assetId, {
-        name: form.name,
-        category_id: Number(form.category_id),
-        serial_code: form.serial_code,
-        status: form.status,
-        location: form.location || null,
-        assigned_person_id: form.assigned_person_id ? Number(form.assigned_person_id) : null,
-        assigned_department_id: form.assigned_department_id ? Number(form.assigned_department_id) : null,
+  useEffect(() => {
+    if (tab === "history" && isAssetAdmin) {
+      setHistoryLoading(true);
+      api.getAssetHistory(assetId).then((h) => {
+        setHistory(h);
+        setHistoryLoading(false);
       });
-      toast.success("Asset updated");
-      setEditing(false);
+    }
+  }, [tab, assetId, isAssetAdmin]);
+
+  async function saveLocation() {
+    setSavingLocation(true);
+    try {
+      await api.updateAsset(assetId, { location: locationDraft || null });
+      toast.success("Location updated");
+      load();
+      onChanged();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not update location");
+    } finally {
+      setSavingLocation(false);
+    }
+  }
+
+  async function saveIdentity() {
+    setSavingIdentity(true);
+    setIdentityError(null);
+    try {
+      const payload: Record<string, unknown> = {
+        name: identityForm.name,
+        description: identityForm.description || null,
+        category_id: Number(identityForm.category_id),
+        photo_url: identityForm.photo_url || null,
+      };
+      if (isSuperadmin) payload.serial_code = identityForm.serial_code;
+      await api.updateAsset(assetId, payload);
+      toast.success("Details updated");
       load();
       onChanged();
     } catch (err: any) {
-      if (err?.detail?.conflicting_asset_id) {
-        setSaveError(err.detail.message);
-      } else {
-        setSaveError(err instanceof Error ? err.message : "Could not save changes");
-      }
+      setIdentityError(err?.detail?.message || (err instanceof Error ? err.message : "Could not save changes"));
     } finally {
-      setSaving(false);
+      setSavingIdentity(false);
+    }
+  }
+
+  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingPhoto(true);
+    try {
+      const { url } = await api.uploadAssetPhoto(file);
+      setIdentityForm((f: any) => ({ ...f, photo_url: url }));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Photo upload failed");
+    } finally {
+      setUploadingPhoto(false);
+      e.target.value = "";
+    }
+  }
+
+  async function handleReturnPhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingReturnPhoto(true);
+    try {
+      const { url } = await api.uploadAssetPhoto(file);
+      setReturnPhoto(url);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Photo upload failed");
+    } finally {
+      setUploadingReturnPhoto(false);
+      e.target.value = "";
+    }
+  }
+
+  async function submitReturn(e: React.FormEvent) {
+    e.preventDefault();
+    setSubmittingReturn(true);
+    try {
+      await api.createSubmission(assetId, {
+        proposed_status: returnStatus,
+        detail: returnDetail || undefined,
+        photo_url: returnPhoto || undefined,
+      });
+      toast.success("Return submitted, waiting on superadmin review");
+      setShowReturnForm(false);
+      setReturnDetail("");
+      setReturnPhoto("");
+      load();
+      onChanged();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not submit return");
+    } finally {
+      setSubmittingReturn(false);
     }
   }
 
@@ -146,6 +225,7 @@ export default function AssetDetailPanel({ assetId, isAssetAdmin, onClose, onCha
   }
 
   const statusInfo = asset ? STATUS_META[asset.status] : null;
+  const isAssigned = asset && (asset.assigned_person_id || asset.assigned_department_id);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
@@ -160,191 +240,314 @@ export default function AssetDetailPanel({ assetId, isAssetAdmin, onClose, onCha
         {loading || !asset ? (
           <p className="text-sm text-body py-10 text-center">Loading...</p>
         ) : (
-          <div className="p-6 space-y-6">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div>
-                <p className="font-medium text-heading text-lg">{asset.name}</p>
+          <>
+            <div className="px-6 pt-5 flex items-center gap-3">
+              {asset.photo_url ? (
+                <img src={asset.photo_url} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0" />
+              ) : (
+                <div className="w-12 h-12 rounded-lg bg-surface-alt shrink-0" />
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-heading text-lg truncate">{asset.name}</p>
                 <p className="text-sm text-muted">{asset.tag_id}</p>
               </div>
               {statusInfo && (
-                <span className={`text-xs px-2 py-1 rounded-full ${statusInfo.className}`}>{statusInfo.label}</span>
+                <span className={`text-xs px-2 py-1 rounded-full shrink-0 ${statusInfo.className}`}>{statusInfo.label}</span>
               )}
             </div>
 
-            {editing ? (
-              <div className="space-y-3">
-                <input
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="Name"
-                  className="w-full rounded-md border border-border/10 px-3 py-2.5 text-sm bg-surface text-body"
-                />
-                <select
-                  value={form.category_id}
-                  onChange={(e) => setForm({ ...form, category_id: e.target.value })}
-                  className="w-full rounded-md border border-border/10 px-3 py-2.5 text-sm bg-surface text-body"
-                >
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-                <input
-                  value={form.serial_code}
-                  onChange={(e) => setForm({ ...form, serial_code: e.target.value })}
-                  placeholder="Serial code"
-                  className="w-full rounded-md border border-border/10 px-3 py-2.5 text-sm bg-surface text-body"
-                />
-                <select
-                  value={form.status}
-                  onChange={(e) => setForm({ ...form, status: e.target.value })}
-                  className="w-full rounded-md border border-border/10 px-3 py-2.5 text-sm bg-surface text-body"
-                >
-                  {STATUS_OPTIONS.map((s) => (
-                    <option key={s.value} value={s.value}>{s.label}</option>
-                  ))}
-                </select>
-                <input
-                  value={form.location}
-                  onChange={(e) => setForm({ ...form, location: e.target.value })}
-                  placeholder="Location (e.g. Store Room 4)"
-                  className="w-full rounded-md border border-border/10 px-3 py-2.5 text-sm bg-surface text-body"
-                />
-                <select
-                  value={form.assigned_person_id}
-                  onChange={(e) => setForm({ ...form, assigned_person_id: e.target.value, assigned_department_id: "" })}
-                  className="w-full rounded-md border border-border/10 px-3 py-2.5 text-sm bg-surface text-body"
-                >
-                  <option value="">Not assigned to a person</option>
-                  {users.map((u: any) => (
-                    <option key={u.id} value={u.id}>{u.name}</option>
-                  ))}
-                </select>
-                <select
-                  value={form.assigned_department_id}
-                  onChange={(e) => setForm({ ...form, assigned_department_id: e.target.value, assigned_person_id: "" })}
-                  className="w-full rounded-md border border-border/10 px-3 py-2.5 text-sm bg-surface text-body"
-                >
-                  <option value="">Not assigned to a department</option>
-                  {departments.map((d: any) => (
-                    <option key={d.id} value={d.id}>{d.name}</option>
-                  ))}
-                </select>
-
-                {saveError && (
-                  <div className="flex items-start gap-2 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-2.5">
-                    <AlertTriangle size={14} className="mt-0.5 shrink-0" />
-                    <span>{saveError}</span>
-                  </div>
-                )}
-
-                <div className="flex justify-end gap-3">
-                  <button onClick={() => { setEditing(false); setSaveError(null); }} className="text-sm text-body px-4 py-2 rounded-md hover:bg-surface-alt">
-                    Cancel
+            {isAssetAdmin && (
+              <div className="flex gap-1 px-6 mt-4 border-b border-border/10">
+                {(["overview", "history", "identity"] as Tab[]).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setTab(t)}
+                    className={`px-3 py-2 text-sm font-medium capitalize border-b-2 ${
+                      tab === t ? "border-brand-orange text-heading" : "border-transparent text-body hover:text-heading"
+                    }`}
+                  >
+                    {t}
                   </button>
-                  <button disabled={saving} onClick={saveEdits} className="text-sm font-medium text-white bg-brand-orange px-4 py-2 rounded-md hover:opacity-90 disabled:opacity-60">
-                    {saving ? "Saving..." : "Save"}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <p className="text-muted text-xs">Category</p>
-                  <p className="text-heading">{asset.category_name}</p>
-                </div>
-                <div>
-                  <p className="text-muted text-xs">Serial Code</p>
-                  <p className="text-heading">{asset.serial_code}</p>
-                </div>
-                <div>
-                  <p className="text-muted text-xs">Location</p>
-                  <p className="text-heading">{asset.location || "—"}</p>
-                </div>
-                <div>
-                  <p className="text-muted text-xs">Assigned To</p>
-                  <p className="text-heading">
-                    {asset.assigned_person_name || asset.assigned_department_name || "Unassigned"}
-                  </p>
-                </div>
-                {isAssetAdmin && (
-                  <button onClick={() => setEditing(true)} className="col-span-2 flex items-center gap-1.5 text-sm text-brand-orange font-medium hover:underline">
-                    <Pencil size={14} /> Edit details
-                  </button>
-                )}
+                ))}
               </div>
             )}
 
-            <div className="border-t border-border/10 pt-4">
-              <p className="text-sm font-medium text-heading mb-3">Notes</p>
+            <div className="p-6 space-y-6">
+              {tab === "overview" && (
+                <>
+                  {asset.description && (
+                    <p className="text-sm text-body bg-surface-alt rounded-md px-3 py-2.5">{asset.description}</p>
+                  )}
 
-              <form onSubmit={submitNewNote} className="flex gap-2 mb-4">
-                <input
-                  value={newNote}
-                  onChange={(e) => setNewNote(e.target.value)}
-                  placeholder="Add a note"
-                  className="flex-1 rounded-md border border-border/10 px-3 py-2 text-sm bg-surface text-body"
-                />
-                <button disabled={addingNote} className="rounded-md bg-brand-orange text-white px-4 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-60">
-                  Add
-                </button>
-              </form>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <p className="text-muted text-xs">Category</p>
+                      <p className="text-heading">{asset.category_name}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted text-xs">Serial Code</p>
+                      <p className="text-heading">{asset.serial_code}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted text-xs">Assigned To</p>
+                      <p className="text-heading">
+                        {asset.assigned_person_name && asset.assigned_department_name
+                          ? `${asset.assigned_person_name} (${asset.assigned_department_name})`
+                          : asset.assigned_person_name || asset.assigned_department_name || "Unassigned"}
+                      </p>
+                    </div>
+                  </div>
 
-              {asset.notes.length === 0 ? (
-                <p className="text-xs text-muted">No notes yet</p>
-              ) : (
-                <div className="space-y-2">
-                  {asset.notes.map((n: any) => {
-                    const isOwner = n.author_id === user?.id;
-                    const canEdit = isOwner || isAssetAdmin;
-                    return (
-                      <div key={n.id} className="rounded-md border border-border/10 px-3 py-2.5 text-sm">
-                        {editingNoteId === n.id ? (
-                          <div className="space-y-2">
-                            <textarea
-                              value={editNoteContent}
-                              onChange={(e) => setEditNoteContent(e.target.value)}
-                              rows={3}
-                              className="w-full rounded-md border border-border/10 px-3 py-2 text-sm bg-surface text-body"
-                            />
-                            <div className="flex justify-end gap-2">
-                              <button onClick={() => setEditingNoteId(null)} className="text-xs text-body hover:underline">
-                                Cancel
-                              </button>
-                              <button onClick={requestSaveNoteEdit} className="text-xs font-medium text-brand-orange hover:underline">
-                                Save
-                              </button>
-                            </div>
-                          </div>
+                  <div>
+                    <p className="text-muted text-xs mb-1">Location</p>
+                    {isAssetAdmin ? (
+                      <div className="flex gap-2">
+                        <input
+                          value={locationDraft}
+                          onChange={(e) => setLocationDraft(e.target.value)}
+                          placeholder="Not set"
+                          className="flex-1 rounded-md border border-border/10 px-3 py-2 text-sm bg-surface text-body"
+                        />
+                        <button
+                          onClick={saveLocation}
+                          disabled={savingLocation || locationDraft === (asset.location || "")}
+                          className="text-sm font-medium text-white bg-brand-orange px-3 py-2 rounded-md hover:opacity-90 disabled:opacity-40"
+                        >
+                          Save
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="text-heading text-sm">{asset.location || "—"}</p>
+                    )}
+                  </div>
+
+                  {isAssetAdmin && isAssigned && !showReturnForm && (
+                    <button
+                      onClick={() => setShowReturnForm(true)}
+                      className="flex items-center gap-1.5 text-sm text-brand-orange font-medium hover:underline"
+                    >
+                      <ArrowLeftRight size={14} /> Report a return
+                    </button>
+                  )}
+
+                  {showReturnForm && (
+                    <form onSubmit={submitReturn} className="rounded-lg border border-border/10 bg-surface-alt p-4 space-y-3">
+                      <p className="text-sm font-medium text-heading">Report a return</p>
+                      <select
+                        value={returnStatus}
+                        onChange={(e) => setReturnStatus(e.target.value)}
+                        className="w-full rounded-md border border-border/10 px-3 py-2 text-sm bg-surface text-body"
+                      >
+                        {STATUS_OPTIONS.map((s) => (
+                          <option key={s.value} value={s.value}>{s.label}</option>
+                        ))}
+                      </select>
+                      <textarea
+                        value={returnDetail}
+                        onChange={(e) => setReturnDetail(e.target.value)}
+                        placeholder="What condition did it come back in? (e.g. needs cleaning, screen cracked)"
+                        rows={2}
+                        className="w-full rounded-md border border-border/10 px-3 py-2 text-sm bg-surface text-body resize-y"
+                      />
+                      <div className="flex items-center gap-3">
+                        {returnPhoto ? (
+                          <img src={returnPhoto} alt="" className="w-12 h-12 rounded-md object-cover" />
                         ) : (
-                          <>
-                            <p className="text-body whitespace-pre-wrap">{n.content}</p>
-                            <div className="flex items-center justify-between mt-1.5">
-                              <p className="text-xs text-muted">
-                                {n.author_name} · {new Date(n.created_at).toLocaleString()}
-                                {n.edited ? " · edited" : ""}
-                              </p>
-                              {canEdit && (
-                                <div className="flex items-center gap-2">
-                                  <button onClick={() => startEditNote(n)} className="text-muted hover:text-heading">
-                                    <Pencil size={12} />
-                                  </button>
-                                  {isAssetAdmin && (
-                                    <button onClick={() => requestDeleteNote(n.id)} className="text-muted hover:text-red-600">
-                                      <Trash2 size={12} />
-                                    </button>
-                                  )}
+                          <div className="w-12 h-12 rounded-md bg-surface" />
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => returnPhotoInputRef.current?.click()}
+                          disabled={uploadingReturnPhoto}
+                          className="flex items-center gap-1.5 text-xs text-body border border-border/10 rounded-md px-3 py-1.5 hover:bg-surface disabled:opacity-50"
+                        >
+                          <Camera size={12} /> {uploadingReturnPhoto ? "Uploading..." : "Add Photo (optional)"}
+                        </button>
+                        <input
+                          ref={returnPhotoInputRef}
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          onChange={handleReturnPhotoUpload}
+                          className="hidden"
+                        />
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <button type="button" onClick={() => setShowReturnForm(false)} className="text-sm text-body px-3 py-2 rounded-md hover:bg-surface">
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={submittingReturn}
+                          className="text-sm font-medium text-white bg-brand-orange px-4 py-2 rounded-md hover:opacity-90 disabled:opacity-60"
+                        >
+                          {submittingReturn ? "Submitting..." : "Submit"}
+                        </button>
+                      </div>
+                      <p className="text-xs text-muted">This goes to Review before the status actually changes.</p>
+                    </form>
+                  )}
+
+                  <div className="border-t border-border/10 pt-4">
+                    <p className="text-sm font-medium text-heading mb-3">Notes</p>
+                    <form onSubmit={submitNewNote} className="space-y-2 mb-4">
+                      <textarea
+                        value={newNote}
+                        onChange={(e) => setNewNote(e.target.value)}
+                        placeholder="Add a note"
+                        rows={2}
+                        className="w-full rounded-md border border-border/10 px-3 py-2 text-sm bg-surface text-body resize-y"
+                      />
+                      <button disabled={addingNote} className="rounded-md bg-brand-orange text-white px-4 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-60">
+                        {addingNote ? "Adding..." : "Add"}
+                      </button>
+                    </form>
+
+                    {asset.notes.length === 0 ? (
+                      <p className="text-xs text-muted">No notes yet</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {asset.notes.map((n: any) => {
+                          const isOwner = n.author_id === user?.id;
+                          const canEdit = isOwner || isAssetAdmin;
+                          return (
+                            <div key={n.id} className="rounded-md border border-border/10 px-3 py-2.5 text-sm">
+                              {editingNoteId === n.id ? (
+                                <div className="space-y-2">
+                                  <textarea
+                                    value={editNoteContent}
+                                    onChange={(e) => setEditNoteContent(e.target.value)}
+                                    rows={3}
+                                    className="w-full rounded-md border border-border/10 px-3 py-2 text-sm bg-surface text-body"
+                                  />
+                                  <div className="flex justify-end gap-2">
+                                    <button onClick={() => setEditingNoteId(null)} className="text-xs text-body hover:underline">Cancel</button>
+                                    <button onClick={requestSaveNoteEdit} className="text-xs font-medium text-brand-orange hover:underline">Save</button>
+                                  </div>
                                 </div>
+                              ) : (
+                                <>
+                                  <p className="text-body whitespace-pre-wrap">{n.content}</p>
+                                  <div className="flex items-center justify-between mt-1.5">
+                                    <p className="text-xs text-muted">
+                                      {n.author_name} · {new Date(n.created_at).toLocaleString()}
+                                      {n.edited ? " · edited" : ""}
+                                    </p>
+                                    {canEdit && (
+                                      <div className="flex items-center gap-2">
+                                        <button onClick={() => startEditNote(n)} className="text-muted hover:text-heading">
+                                          <Pencil size={12} />
+                                        </button>
+                                        {isAssetAdmin && (
+                                          <button onClick={() => requestDeleteNote(n.id)} className="text-muted hover:text-red-600">
+                                            <Trash2 size={12} />
+                                          </button>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                </>
                               )}
                             </div>
-                          </>
-                        )}
+                          );
+                        })}
                       </div>
-                    );
-                  })}
+                    )}
+                  </div>
+                </>
+              )}
+
+              {tab === "history" && isAssetAdmin && (
+                <div>
+                  {historyLoading ? (
+                    <p className="text-sm text-body">Loading...</p>
+                  ) : history.length === 0 ? (
+                    <p className="text-sm text-muted">No history recorded yet</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {history.map((h: any) => (
+                        <div key={h.id} className="rounded-md border border-border/10 px-3 py-2.5 text-sm">
+                          <p className="text-heading font-medium">{h.action.replace(/_/g, " ")}</p>
+                          <p className="text-xs text-muted mt-0.5">
+                            {h.actor_name ? `By ${h.actor_name}` : "System"} · {new Date(h.created_at).toLocaleString()}
+                          </p>
+                          {h.detail && <p className="text-xs text-body mt-1 whitespace-pre-wrap">{h.detail}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {tab === "identity" && isAssetAdmin && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    {identityForm.photo_url ? (
+                      <img src={identityForm.photo_url} alt="" className="w-16 h-16 rounded-lg object-cover" />
+                    ) : (
+                      <div className="w-16 h-16 rounded-lg bg-surface-alt" />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploadingPhoto}
+                      className="flex items-center gap-1.5 text-sm text-body border border-border/10 rounded-md px-3 py-2 hover:bg-surface-alt disabled:opacity-50"
+                    >
+                      <Camera size={14} /> {uploadingPhoto ? "Uploading..." : "Change Photo"}
+                    </button>
+                    <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePhotoUpload} className="hidden" />
+                  </div>
+
+                  <input
+                    value={identityForm.name}
+                    onChange={(e) => setIdentityForm({ ...identityForm, name: e.target.value })}
+                    placeholder="Name"
+                    className="w-full rounded-md border border-border/10 px-3 py-2.5 text-sm bg-surface text-body"
+                  />
+                  <textarea
+                    value={identityForm.description}
+                    onChange={(e) => setIdentityForm({ ...identityForm, description: e.target.value })}
+                    placeholder="Description (usage notes, care instructions)"
+                    rows={2}
+                    className="w-full rounded-md border border-border/10 px-3 py-2.5 text-sm bg-surface text-body resize-y"
+                  />
+                  <select
+                    value={identityForm.category_id}
+                    onChange={(e) => setIdentityForm({ ...identityForm, category_id: e.target.value })}
+                    className="w-full rounded-md border border-border/10 px-3 py-2.5 text-sm bg-surface text-body"
+                  >
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                  <div>
+                    <input
+                      value={identityForm.serial_code}
+                      onChange={(e) => setIdentityForm({ ...identityForm, serial_code: e.target.value })}
+                      placeholder="Serial code"
+                      disabled={!isSuperadmin}
+                      className="w-full rounded-md border border-border/10 px-3 py-2.5 text-sm bg-surface text-body disabled:opacity-50"
+                    />
+                    {!isSuperadmin && <p className="text-xs text-muted mt-1">Only a superadmin can change the serial code</p>}
+                  </div>
+
+                  {identityError && (
+                    <div className="flex items-start gap-2 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-2.5">
+                      <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+                      <span>{identityError}</span>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={saveIdentity}
+                    disabled={savingIdentity}
+                    className="w-full text-sm font-medium text-white bg-brand-orange px-4 py-2.5 rounded-md hover:opacity-90 disabled:opacity-60"
+                  >
+                    {savingIdentity ? "Saving..." : "Save Changes"}
+                  </button>
                 </div>
               )}
             </div>
-          </div>
+          </>
         )}
       </div>
 

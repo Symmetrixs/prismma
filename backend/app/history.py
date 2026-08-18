@@ -20,6 +20,8 @@ LABELS = {
     "enabled": "Account enabled",
     "blocked": "Account blocked",
     "unblocked": "Account unblocked",
+    "created": "Account created",
+    "unlocked": "Account unlocked",
 }
 
 

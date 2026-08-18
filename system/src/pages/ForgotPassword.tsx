@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { KeyRound } from "lucide-react";
 import { api } from "../lib/api";
+import Logo from "../components/Logo";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -28,7 +29,7 @@ export default function ForgotPassword() {
     <div className="relative min-h-screen flex items-center justify-center px-6">
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center text-center mb-8">
-          <img src="/assets/logos/prismma_main_logo.png" alt="Prismma Express" className="h-9 mb-6" />
+          <Logo className="h-9 mb-6" />
           <h1 className="font-display text-2xl font-semibold text-heading">Reset your password</h1>
           <p className="mt-2 text-body">Enter your account email and an admin will review your request</p>
         </div>
@@ -36,7 +37,7 @@ export default function ForgotPassword() {
         <div className="bg-surface/95 backdrop-blur rounded-xl border border-border/10 shadow-sm p-8 space-y-4">
           {message ? (
             <div className="text-center space-y-4">
-              <div className="mx-auto flex items-center justify-center w-12 h-12 rounded-full bg-green-50 text-green-600">
+              <div className="mx-auto flex items-center justify-center w-12 h-12 rounded-full bg-green-50 dark:bg-green-500/20 text-green-600 dark:text-green-400">
                 <KeyRound size={22} />
               </div>
               <p className="text-body text-sm">{message}</p>

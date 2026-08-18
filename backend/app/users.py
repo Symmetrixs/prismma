@@ -280,6 +280,8 @@ def create_user_by_admin(
     db.add(user)
     db.commit()
     db.refresh(user)
+    _log_action(db, user.id, "created", current_user.id)
+    db.commit()
     return user
 
 
@@ -417,6 +419,7 @@ def unlock_user(
     user.locked_until = None
     user.lockout_stage = 0
     user.failed_login_count = 0
+    _log_action(db, user.id, "unlocked", current_user.id)
     db.commit()
     db.refresh(user)
     return user

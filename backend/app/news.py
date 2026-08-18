@@ -182,7 +182,7 @@ def create_news(
     for media_item in payload.media:
         db.add(NewsMedia(news_id=item.id, **media_item.model_dump()))
 
-    log_module_action(db, "news-editor", item.title, "article_created", current_user.id)
+    log_module_action(db, "news-editor", item.title, "article_created", current_user.id, target_id=item.id)
     db.commit()
     db.refresh(item)
     return item
@@ -215,7 +215,7 @@ def update_news(
         action = "article_published" if update_data["published"] else "article_unpublished"
     else:
         action = "article_edited"
-    log_module_action(db, "news-editor", item.title, action, current_user.id)
+    log_module_action(db, "news-editor", item.title, action, current_user.id, target_id=item.id)
 
     db.commit()
     db.refresh(item)
@@ -231,7 +231,7 @@ def delete_news(
     item = db.query(News).filter(News.id == news_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Article not found")
-    log_module_action(db, "news-editor", item.title, "article_deleted", current_user.id)
+    log_module_action(db, "news-editor", item.title, "article_deleted", current_user.id, target_id=item.id)
     db.delete(item)
     db.commit()
     return {"deleted": True}

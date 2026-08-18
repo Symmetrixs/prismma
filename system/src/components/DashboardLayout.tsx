@@ -4,6 +4,7 @@ import { LogOut, LayoutGrid, User as UserIcon, PlusCircle, History, Menu, X, Sun
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { api } from "../lib/api";
+import Logo from "./Logo";
 
 interface Department {
   id: number;
@@ -118,7 +119,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-bg">
       <aside className="hidden md:flex fixed left-0 top-0 h-screen w-64 bg-surface border-r border-border/10 flex-col z-40">
         <Link to="/" className="flex items-center gap-2.5 px-6 py-6 border-b border-border/10">
-          <img src="/assets/logos/prismma_main_logo.png" alt="Prismma Express" className="h-6" />
+          <Logo className="h-6" />
         </Link>
         <p className="px-6 pt-3 pb-4 text-xs text-muted tracking-wide uppercase border-b border-border/10">
           Internal Systems Portal
@@ -128,7 +129,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
       <header className="md:hidden fixed top-0 left-0 right-0 z-50 bg-surface border-b border-border/10 h-16 flex items-center justify-between px-4">
         <Link to="/" className="flex items-center gap-2.5">
-          <img src="/assets/logos/prismma_main_logo.png" alt="Prismma Express" className="h-5" />
+          <Logo className="h-5" />
         </Link>
         <button
           type="button"
