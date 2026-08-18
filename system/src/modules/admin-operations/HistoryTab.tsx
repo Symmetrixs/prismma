@@ -99,15 +99,15 @@ export default function HistoryTab() {
             placeholder="Search by name or ID"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-md border border-black/10 pl-9 pr-3 py-2.5 text-sm"
+            className="w-full rounded-md border border-border/10 pl-9 pr-3 py-2.5 text-sm bg-surface text-body"
           />
         </div>
-        <select value={type} onChange={(e) => setType(e.target.value)} className="rounded-md border border-black/10 px-3 py-2.5 text-sm bg-white">
+        <select value={type} onChange={(e) => setType(e.target.value)} className="rounded-md border border-border/10 px-3 py-2.5 text-sm bg-surface">
           {TYPE_OPTIONS.map((o) => (
             <option key={o.value} value={o.value}>{o.label}</option>
           ))}
         </select>
-        <select value={department} onChange={(e) => setDepartment(e.target.value)} className="rounded-md border border-black/10 px-3 py-2.5 text-sm bg-white">
+        <select value={department} onChange={(e) => setDepartment(e.target.value)} className="rounded-md border border-border/10 px-3 py-2.5 text-sm bg-surface">
           <option value="">All departments</option>
           {departments.map((d) => (
             <option key={d} value={d}>{d}</option>
@@ -115,13 +115,13 @@ export default function HistoryTab() {
         </select>
         <button
           onClick={() => setSortDesc(!sortDesc)}
-          className="text-sm text-body px-3 py-2.5 rounded-md border border-black/10 hover:bg-gray-50"
+          className="text-sm text-body px-3 py-2.5 rounded-md border border-border/10 hover:bg-surface-alt"
         >
           {sortDesc ? "Newest first" : "Oldest first"}
         </button>
         <button
           onClick={exportCsv}
-          className="flex items-center gap-1.5 rounded-md border border-black/10 px-4 py-2.5 text-sm text-body hover:bg-gray-50"
+          className="flex items-center gap-1.5 rounded-md border border-border/10 px-4 py-2.5 text-sm text-body hover:bg-surface-alt"
         >
           <Download size={14} /> Export CSV
         </button>
@@ -132,9 +132,9 @@ export default function HistoryTab() {
       ) : (
         <div className="space-y-2">
           {filtered.map((e) => (
-            <div key={e.id} className="bg-white rounded-xl border border-black/10 p-4 flex items-center justify-between flex-wrap gap-3">
+            <div key={e.id} className="bg-surface rounded-xl border border-border/10 p-4 flex items-center justify-between flex-wrap gap-3">
               <div>
-                <p className="text-sm font-medium text-brand-navy">
+                <p className="text-sm font-medium text-heading">
                   {e.label}: {e.target_name}
                 </p>
                 <p className="text-xs text-body">

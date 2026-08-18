@@ -22,9 +22,17 @@ export default function ModuleRoute() {
         return;
       }
 
+      if (user?.role === "superadmin") {
+        if (active) {
+          setAllowed(true);
+          setChecking(false);
+        }
+        return;
+      }
+
       if (slug === "admin-operations") {
         if (active) {
-          setAllowed(user?.role === "admin" || user?.role === "superadmin");
+          setAllowed(user?.role === "admin");
           setChecking(false);
         }
         return;
@@ -71,11 +79,11 @@ export default function ModuleRoute() {
   if (!allowed) {
     return (
       <DashboardLayout>
-        <div className="bg-white rounded-xl border border-black/10 p-10 text-center max-w-md mx-auto">
+        <div className="bg-surface rounded-xl border border-border/10 p-10 text-center max-w-md mx-auto">
           <div className="mx-auto mb-4 flex items-center justify-center w-12 h-12 rounded-full bg-red-50 text-red-500">
             <ShieldOff size={22} />
           </div>
-          <h2 className="font-display text-lg font-medium text-brand-navy mb-2">Access required</h2>
+          <h2 className="font-display text-lg font-medium text-heading mb-2">Access required</h2>
           <p className="text-body text-sm">
             You don't currently have access to this module. Head to Module Access to request it.
           </p>

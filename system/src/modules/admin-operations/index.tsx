@@ -76,10 +76,10 @@ export default function AdminOperations() {
 
   return (
     <DashboardLayout>
-      <h1 className="font-display text-2xl font-semibold text-brand-navy mb-1">Admin Operations</h1>
+      <h1 className="font-display text-2xl font-semibold text-heading mb-1">Admin Operations</h1>
       <p className="text-body mb-6">Manage accounts, requests, and system configuration</p>
 
-      <div className="flex flex-wrap gap-2 border-b border-black/10 mb-6">
+      <div className="flex flex-wrap gap-1 mb-6">
         {tabs.map((t) => {
           if (t.superadminOnly && !isSuperadmin) return null;
           const Icon = t.icon;
@@ -89,7 +89,7 @@ export default function AdminOperations() {
               key={t.key}
               onClick={() => setTab(t.key)}
               className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-                tab === t.key ? "border-brand-orange text-brand-navy" : "border-transparent text-body hover:text-brand-navy"
+                tab === t.key ? "border-brand-orange text-heading" : "border-border/10 text-body hover:text-heading"
               }`}
             >
               <Icon size={16} />

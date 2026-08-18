@@ -67,7 +67,7 @@ def require_module_access(module_slug: str):
         user: User = Depends(get_current_user),
         db: Session = Depends(get_db),
     ) -> User:
-        if user.role in ("admin", "superadmin"):
+        if user.role == "superadmin":
             return user
 
         module = db.query(Module).filter(Module.slug == module_slug).first()

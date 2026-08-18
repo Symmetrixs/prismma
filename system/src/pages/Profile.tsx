@@ -4,6 +4,7 @@ import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import DashboardLayout from "../components/DashboardLayout";
 import PasswordStrength, { isPasswordStrong } from "../components/PasswordStrength";
+import PasswordInput from "../components/PasswordInput";
 import { useToast } from "../context/ToastContext";
 
 interface Department {
@@ -106,12 +107,12 @@ export default function Profile() {
 
   return (
     <DashboardLayout>
-      <h1 className="font-display text-2xl font-semibold text-brand-navy mb-1">Profile</h1>
+      <h1 className="font-display text-2xl font-semibold text-heading mb-1">Profile</h1>
       <p className="text-body mb-8">Manage your personal details</p>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <form onSubmit={handleSave} className="bg-white rounded-xl border border-black/10 p-6 space-y-4">
-          <h2 className="font-display text-lg font-medium text-brand-navy">Personal Details</h2>
+        <form onSubmit={handleSave} className="bg-surface rounded-xl border border-border/10 p-6 space-y-4">
+          <h2 className="font-display text-lg font-medium text-heading">Personal Details</h2>
 
           {error && (
             <div className="rounded-md bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3">{error}</div>
@@ -121,11 +122,11 @@ export default function Profile() {
           )}
 
           <div className="flex items-center gap-4">
-            <div className="relative w-16 h-16 rounded-full overflow-hidden bg-gray-100 border border-black/10 shrink-0">
+            <div className="relative w-16 h-16 rounded-full overflow-hidden bg-surface-alt border border-border/10 shrink-0">
               {form.profile_picture_url ? (
                 <img src={form.profile_picture_url} alt="Profile" className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-brand-navy font-medium">
+                <div className="w-full h-full flex items-center justify-center text-heading font-medium">
                   {user?.name?.charAt(0).toUpperCase()}
                 </div>
               )}
@@ -151,7 +152,7 @@ export default function Profile() {
               required
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="w-full rounded-md border border-black/10 px-4 py-2.5 text-sm"
+              className="w-full rounded-md border border-border/10 px-4 py-2.5 text-sm bg-surface text-body"
             />
           </div>
 
@@ -160,7 +161,7 @@ export default function Profile() {
             <input
               value={form.phone_number}
               onChange={(e) => setForm({ ...form, phone_number: e.target.value })}
-              className="w-full rounded-md border border-black/10 px-4 py-2.5 text-sm"
+              className="w-full rounded-md border border-border/10 px-4 py-2.5 text-sm bg-surface text-body"
             />
           </div>
 
@@ -169,7 +170,7 @@ export default function Profile() {
             <select
               value={form.department_id}
               onChange={(e) => setForm({ ...form, department_id: e.target.value })}
-              className="w-full rounded-md border border-black/10 px-4 py-2.5 text-sm bg-white"
+              className="w-full rounded-md border border-border/10 px-4 py-2.5 text-sm bg-surface"
             >
               <option value="">Select department</option>
               {departments.map((d) => (
@@ -183,7 +184,7 @@ export default function Profile() {
             <input
               value={form.job_title}
               onChange={(e) => setForm({ ...form, job_title: e.target.value })}
-              className="w-full rounded-md border border-black/10 px-4 py-2.5 text-sm"
+              className="w-full rounded-md border border-border/10 px-4 py-2.5 text-sm bg-surface text-body"
             />
           </div>
 
@@ -196,8 +197,8 @@ export default function Profile() {
           </button>
         </form>
 
-        <form onSubmit={handlePasswordChange} className="bg-white rounded-xl border border-black/10 p-6 space-y-4 h-fit">
-          <h2 className="font-display text-lg font-medium text-brand-navy">Change Password</h2>
+        <form onSubmit={handlePasswordChange} className="bg-surface rounded-xl border border-border/10 p-6 space-y-4 h-fit">
+          <h2 className="font-display text-lg font-medium text-heading">Change Password</h2>
 
           {pwError && (
             <div className="rounded-md bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3">{pwError}</div>
@@ -208,35 +209,32 @@ export default function Profile() {
 
           <div>
             <label className="text-sm text-body block mb-1">Current Password</label>
-            <input
+            <PasswordInput
               required
-              type="password"
               value={pwForm.current_password}
               onChange={(e) => setPwForm({ ...pwForm, current_password: e.target.value })}
-              className="w-full rounded-md border border-black/10 px-4 py-2.5 text-sm"
+              className="px-4 py-2.5 text-sm"
             />
           </div>
 
           <div>
             <label className="text-sm text-body block mb-1">New Password</label>
-            <input
+            <PasswordInput
               required
-              type="password"
               value={pwForm.new_password}
               onChange={(e) => setPwForm({ ...pwForm, new_password: e.target.value })}
-              className="w-full rounded-md border border-black/10 px-4 py-2.5 text-sm"
+              className="px-4 py-2.5 text-sm"
             />
             <PasswordStrength password={pwForm.new_password} />
           </div>
 
           <div>
             <label className="text-sm text-body block mb-1">Confirm New Password</label>
-            <input
+            <PasswordInput
               required
-              type="password"
               value={pwForm.confirm_password}
               onChange={(e) => setPwForm({ ...pwForm, confirm_password: e.target.value })}
-              className="w-full rounded-md border border-black/10 px-4 py-2.5 text-sm"
+              className="px-4 py-2.5 text-sm"
             />
           </div>
 

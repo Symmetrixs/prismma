@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from app.db.base import Base
 from app.db.session import get_db
 from app.core.deps import require_module_access, get_optional_user
+from app.core.module_log import log_module_action
 from app.core.utils import slugify
 from app.models import User, Module, ModuleAccess
 
@@ -181,6 +182,7 @@ def create_news(
     for media_item in payload.media:
         db.add(NewsMedia(news_id=item.id, **media_item.model_dump()))
 
+    log_module_action(db, "news-editor", item.title, "article_created", current_user.id)
     db.commit()
     db.refresh(item)
     return item
@@ -209,6 +211,12 @@ def update_news(
         for media_item in payload.media:
             db.add(NewsMedia(news_id=item.id, **media_item.model_dump()))
 
+    if "published" in update_data:
+        action = "article_published" if update_data["published"] else "article_unpublished"
+    else:
+        action = "article_edited"
+    log_module_action(db, "news-editor", item.title, action, current_user.id)
+
     db.commit()
     db.refresh(item)
     return item
@@ -223,6 +231,7 @@ def delete_news(
     item = db.query(News).filter(News.id == news_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Article not found")
+    log_module_action(db, "news-editor", item.title, "article_deleted", current_user.id)
     db.delete(item)
     db.commit()
     return {"deleted": True}

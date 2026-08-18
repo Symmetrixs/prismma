@@ -39,7 +39,11 @@ async function request(path: string, options: RequestOptions = {}) {
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({ detail: "Something went wrong" }));
-    throw new Error(body.detail || "Request failed");
+    const detail = body.detail;
+    const message = typeof detail === "string" ? detail : detail?.message || "Request failed";
+    const error = new Error(message) as Error & { detail?: unknown };
+    error.detail = detail;
+    throw error;
   }
 
   if (res.status === 204) return null;
@@ -199,4 +203,23 @@ export const api = {
 
   uploadNewsMedia: (file: File) => uploadFile("/uploads/news-media", file),
   uploadProfilePicture: (file: File) => uploadFile("/uploads/profile-picture", file),
+
+  getAssetCategories: () => request("/assets/categories"),
+  createAssetCategory: (name: string) =>
+    request("/assets/categories", { method: "POST", body: JSON.stringify({ name }) }),
+  deleteAssetCategory: (id: number) => request(`/assets/categories/${id}`, { method: "DELETE" }),
+
+  getAssets: () => request("/assets"),
+  getAsset: (id: number) => request(`/assets/${id}`),
+  createAsset: (payload: Record<string, unknown>) =>
+    request("/assets", { method: "POST", body: JSON.stringify(payload) }),
+  updateAsset: (id: number, payload: Record<string, unknown>) =>
+    request(`/assets/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
+  addAssetNote: (assetId: number, content: string) =>
+    request(`/assets/${assetId}/notes`, { method: "POST", body: JSON.stringify({ content }) }),
+  editAssetNote: (noteId: number, content: string) =>
+    request(`/assets/notes/${noteId}`, { method: "PATCH", body: JSON.stringify({ content }) }),
+  deleteAssetNote: (noteId: number) => request(`/assets/notes/${noteId}`, { method: "DELETE" }),
+
+  getModuleLog: (moduleSlug: string) => request(`/module-log/${moduleSlug}`),
 };

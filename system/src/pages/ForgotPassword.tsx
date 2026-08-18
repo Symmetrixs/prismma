@@ -29,11 +29,11 @@ export default function ForgotPassword() {
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center text-center mb-8">
           <img src="/assets/logos/prismma_main_logo.png" alt="Prismma Express" className="h-9 mb-6" />
-          <h1 className="font-display text-2xl font-semibold text-brand-navy">Reset your password</h1>
+          <h1 className="font-display text-2xl font-semibold text-heading">Reset your password</h1>
           <p className="mt-2 text-body">Enter your account email and an admin will review your request</p>
         </div>
 
-        <div className="bg-white/95 backdrop-blur rounded-xl border border-black/10 shadow-sm p-8 space-y-4">
+        <div className="bg-surface/95 backdrop-blur rounded-xl border border-border/10 shadow-sm p-8 space-y-4">
           {message ? (
             <div className="text-center space-y-4">
               <div className="mx-auto flex items-center justify-center w-12 h-12 rounded-full bg-green-50 text-green-600">
@@ -58,7 +58,7 @@ export default function ForgotPassword() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-md border border-black/10 px-4 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-brand-orange/40"
+                  className="w-full rounded-md border border-border/10 px-4 py-2.5 text-base bg-surface text-body focus:outline-none focus:ring-2 focus:ring-brand-orange/40"
                 />
               </div>
               <button

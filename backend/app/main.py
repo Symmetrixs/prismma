@@ -9,7 +9,7 @@ from app.core.rate_limit import limiter
 from app.db.session import engine
 from app.db.base import Base
 from app import models
-from app import auth, news, contact, users, departments, modules, module_access, uploads, history
+from app import auth, news, contact, users, departments, modules, module_access, uploads, history, module_log, assets
 
 app = FastAPI(title=settings.APP_NAME)
 
@@ -39,6 +39,8 @@ app.include_router(modules.router)
 app.include_router(module_access.router)
 app.include_router(uploads.router)
 app.include_router(history.router)
+app.include_router(module_log.router)
+app.include_router(assets.router)
 
 
 @app.get("/health")

@@ -69,14 +69,14 @@ export default function InactivityMonitor() {
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 px-4">
-      <div className="bg-white rounded-xl border border-black/10 p-6 max-w-sm w-full shadow-lg text-center">
-        <h3 className="font-display text-lg font-semibold text-brand-navy mb-2">Still there?</h3>
+      <div className="bg-surface rounded-xl border border-border/10 p-6 max-w-sm w-full shadow-lg text-center">
+        <h3 className="font-display text-lg font-semibold text-heading mb-2">Still there?</h3>
         <p className="text-sm text-body mb-5">
           You've been inactive for a while. For security, you'll be logged out in {secondsLeft} second
           {secondsLeft !== 1 ? "s" : ""} unless you stay signed in.
         </p>
         <div className="flex justify-center gap-3">
-          <button onClick={handleLogout} className="text-sm text-body px-4 py-2 rounded-md hover:bg-gray-50">
+          <button onClick={handleLogout} className="text-sm text-body px-4 py-2 rounded-md hover:bg-surface-alt">
             Log out now
           </button>
           <button

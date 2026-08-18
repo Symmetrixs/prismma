@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { LogIn, ArrowLeft } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import PasswordInput from "../components/PasswordInput";
 
 export default function Login() {
   const { login } = useAuth();
@@ -31,16 +32,16 @@ export default function Login() {
         <div className="flex flex-col items-center text-center mb-8">
           <a
             href={import.meta.env.VITE_HOMEPAGE_URL || "https://prismma.net"}
-            className="inline-flex items-center gap-1.5 text-sm text-body hover:text-brand-navy mb-6"
+            className="inline-flex items-center gap-1.5 text-sm text-body hover:text-heading mb-6"
           >
             <ArrowLeft size={14} /> Back to Prismma Express
           </a>
           <img src="/assets/logos/prismma_main_logo.png" alt="Prismma Express" className="h-9 mb-6" />
-          <h1 className="font-display text-2xl font-semibold text-brand-navy">Prismma Internal Portal</h1>
+          <h1 className="font-display text-2xl font-semibold text-heading">Prismma Internal Portal</h1>
           <p className="mt-2 text-body">Sign in with your email or employee ID</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white/95 backdrop-blur rounded-xl border border-black/10 shadow-sm p-8 space-y-4">
+        <form onSubmit={handleSubmit} className="bg-surface/95 backdrop-blur rounded-xl border border-border/10 shadow-sm p-8 space-y-4">
           {error && (
             <div className="rounded-md bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3">
               {error}
@@ -53,7 +54,7 @@ export default function Login() {
               required
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
-              className="w-full rounded-md border border-black/10 px-4 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-brand-orange/40"
+              className="w-full rounded-md border border-border/10 px-4 py-2.5 text-base bg-surface text-body focus:outline-none focus:ring-2 focus:ring-brand-orange/40"
             />
           </div>
 
@@ -64,12 +65,10 @@ export default function Login() {
                 Forgot password?
               </Link>
             </div>
-            <input
+            <PasswordInput
               required
-              type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-md border border-black/10 px-4 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-brand-orange/40"
             />
           </div>
 

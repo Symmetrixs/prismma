@@ -40,6 +40,8 @@ export default function Dashboard() {
 
   const approvedModules = modules.filter((mod) => {
     if (mod.slug === "admin-operations") return false;
+    if (mod.status !== "active") return false;
+    if (isSuperadmin) return true;
     return access.some((a) => a.module_id === mod.id && a.status === "approved");
   });
 
@@ -55,7 +57,7 @@ export default function Dashboard() {
 
   return (
     <DashboardLayout>
-      <h1 className="font-display text-2xl font-semibold text-brand-navy mb-1">
+      <h1 className="font-display text-2xl font-semibold text-heading mb-1">
         Welcome, {user?.name}
       </h1>
       <p className="text-body mb-1">Your modules</p>
@@ -67,7 +69,7 @@ export default function Dashboard() {
       {!user?.last_login_at && <div className="mb-8" />}
 
       {approvedModules.length === 0 && !isAdminTier ? (
-        <div className="bg-white rounded-xl border border-black/10 p-10 text-center">
+        <div className="bg-surface rounded-xl border border-border/10 p-10 text-center">
           <p className="text-body">You don't have access to any modules yet.</p>
           <button
             onClick={() => navigate("/module-access")}
@@ -81,17 +83,17 @@ export default function Dashboard() {
           {isAdminTier && (
             <button
               onClick={() => navigate("/modules/admin-operations")}
-              className="relative text-left rounded-xl bg-white border border-black/10 p-6 hover:shadow-md transition-shadow"
+              className="relative text-left rounded-xl bg-surface border border-border/10 p-6 hover:shadow-md transition-shadow"
             >
               {pendingCount > 0 && (
                 <span className="absolute top-4 right-4 flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full bg-red-500 text-white text-xs font-medium">
                   {pendingCount}
                 </span>
               )}
-              <div className="inline-flex items-center justify-center w-11 h-11 rounded-lg bg-brand-navy/10 text-brand-navy mb-4">
+              <div className="inline-flex items-center justify-center w-11 h-11 rounded-lg bg-brand-navy/10 text-heading mb-4">
                 <Shield size={22} />
               </div>
-              <h3 className="font-display font-medium text-brand-navy">Admin Operations</h3>
+              <h3 className="font-display font-medium text-heading">Admin Operations</h3>
               <p className="text-sm text-body mt-1">
                 {pendingCount > 0 ? `${pendingCount} item${pendingCount !== 1 ? "s" : ""} need attention` : "Manage users, approvals, and modules"}
               </p>
@@ -107,12 +109,12 @@ export default function Dashboard() {
               <button
                 key={mod.id}
                 onClick={() => navigate(`/modules/${mod.slug}`)}
-                className="text-left rounded-xl bg-white border border-black/10 p-6 hover:shadow-md transition-shadow"
+                className="text-left rounded-xl bg-surface border border-border/10 p-6 hover:shadow-md transition-shadow"
               >
                 <div className="inline-flex items-center justify-center w-11 h-11 rounded-lg bg-brand-orange/10 text-brand-orange mb-4">
                   <Icon size={22} />
                 </div>
-                <h3 className="font-display font-medium text-brand-navy">{mod.name}</h3>
+                <h3 className="font-display font-medium text-heading">{mod.name}</h3>
                 <p className="text-sm text-body mt-1">{mod.description}</p>
                 <span className="inline-flex items-center gap-1 text-sm text-brand-orange font-medium mt-4">
                   Open <ArrowRight size={14} />

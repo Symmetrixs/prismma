@@ -2,12 +2,16 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { UserPlus } from "lucide-react";
 import PasswordStrength, { isPasswordStrong } from "../components/PasswordStrength";
+import PasswordInput from "../components/PasswordInput";
 import { api } from "../lib/api";
 
 interface Department {
   id: number;
   name: string;
 }
+
+const inputClass =
+  "w-full rounded-md border border-border/10 px-4 py-2.5 text-base bg-surface text-body focus:outline-none focus:ring-2 focus:ring-brand-orange/40";
 
 export default function Register() {
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -20,6 +24,7 @@ export default function Register() {
     department_id: "",
     job_title: "",
   });
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -33,6 +38,10 @@ export default function Register() {
     setError(null);
     if (!isPasswordStrong(form.password)) {
       setError("Password does not meet the minimum requirements");
+      return;
+    }
+    if (form.password !== confirmPassword) {
+      setError("Password and confirmation do not match");
       return;
     }
     setLoading(true);
@@ -52,8 +61,8 @@ export default function Register() {
   if (submitted) {
     return (
       <div className="relative min-h-screen flex items-center justify-center px-6">
-        <div className="max-w-md text-center bg-white/95 backdrop-blur rounded-xl border border-black/10 shadow-sm p-8">
-          <h1 className="font-display text-2xl font-semibold text-brand-navy">Registration Submitted</h1>
+        <div className="max-w-md text-center bg-surface/95 backdrop-blur rounded-xl border border-border/10 shadow-sm p-8">
+          <h1 className="font-display text-2xl font-semibold text-heading">Registration Submitted</h1>
           <p className="mt-3 text-body">
             An admin will review your account. You'll be able to sign in once approved.
           </p>
@@ -69,11 +78,11 @@ export default function Register() {
     <div className="relative min-h-screen flex items-center justify-center px-6 py-12">
       <div className="w-full max-w-lg">
         <div className="text-center mb-8">
-          <h1 className="font-display text-3xl font-semibold text-brand-navy">Create Account</h1>
+          <h1 className="font-display text-3xl font-semibold text-heading">Create Account</h1>
           <p className="mt-2 text-body">Every new account needs admin approval before it's active</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white/95 backdrop-blur rounded-xl border border-black/10 shadow-sm p-8 space-y-4">
+        <form onSubmit={handleSubmit} className="bg-surface/95 backdrop-blur rounded-xl border border-border/10 shadow-sm p-8 space-y-4">
           {error && (
             <div className="rounded-md bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3">
               {error}
@@ -86,7 +95,7 @@ export default function Register() {
               required
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="w-full rounded-md border border-black/10 px-4 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-brand-orange/40"
+              className={inputClass}
             />
           </div>
 
@@ -97,21 +106,28 @@ export default function Register() {
               type="email"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="w-full rounded-md border border-black/10 px-4 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-brand-orange/40"
+              className={inputClass}
             />
           </div>
 
           <div>
             <label className="text-sm text-body block mb-1">Password</label>
-            <input
+            <PasswordInput
               required
-              type="password"
               minLength={8}
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
-              className="w-full rounded-md border border-black/10 px-4 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-brand-orange/40"
             />
             <PasswordStrength password={form.password} />
+          </div>
+
+          <div>
+            <label className="text-sm text-body block mb-1">Confirm Password</label>
+            <PasswordInput
+              required
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -121,7 +137,7 @@ export default function Register() {
                 required
                 value={form.employee_id}
                 onChange={(e) => setForm({ ...form, employee_id: e.target.value })}
-                className="w-full rounded-md border border-black/10 px-4 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-brand-orange/40"
+                className={inputClass}
               />
             </div>
             <div>
@@ -129,7 +145,7 @@ export default function Register() {
               <input
                 value={form.phone_number}
                 onChange={(e) => setForm({ ...form, phone_number: e.target.value })}
-                className="w-full rounded-md border border-black/10 px-4 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-brand-orange/40"
+                className={inputClass}
               />
             </div>
           </div>
@@ -139,7 +155,7 @@ export default function Register() {
             <select
               value={form.department_id}
               onChange={(e) => setForm({ ...form, department_id: e.target.value })}
-              className="w-full rounded-md border border-black/10 px-4 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-brand-orange/40 bg-white"
+              className={inputClass}
             >
               <option value="">Select department</option>
               {departments.map((d) => (
@@ -154,7 +170,7 @@ export default function Register() {
               value={form.job_title}
               onChange={(e) => setForm({ ...form, job_title: e.target.value })}
               placeholder="e.g. Logistics Coordinator"
-              className="w-full rounded-md border border-black/10 px-4 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-brand-orange/40"
+              className={inputClass}
             />
           </div>
 

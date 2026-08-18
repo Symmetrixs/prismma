@@ -8,12 +8,9 @@ export default function Ticketing() {
         <div className="flex items-center justify-center w-16 h-16 rounded-full bg-brand-green/10 text-brand-green mb-5">
           <Wrench size={28} />
         </div>
-        <h1 className="font-display text-xl font-medium text-brand-navy">
-          In Progress
-        </h1>
+        <h1 className="font-display text-xl font-medium text-heading">In Progress</h1>
         <p className="mt-2 text-body max-w-sm">
-          The ticketing system is being built. This module will be available in
-          a future update.
+          The ticketing system is being built. This module will be available in a future update.
         </p>
       </div>
     </DashboardLayout>

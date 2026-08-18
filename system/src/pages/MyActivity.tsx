@@ -55,7 +55,7 @@ export default function MyActivity() {
 
   return (
     <DashboardLayout>
-      <h1 className="font-display text-2xl font-semibold text-brand-navy mb-1">My Activity</h1>
+      <h1 className="font-display text-2xl font-semibold text-heading mb-1">My Activity</h1>
       <p className="text-body mb-6">A timeline of decisions made on your account</p>
 
       {loading ? (
@@ -71,13 +71,13 @@ export default function MyActivity() {
                 placeholder="Search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full rounded-md border border-black/10 pl-9 pr-3 py-2.5 text-sm"
+                className="w-full rounded-md border border-border/10 pl-9 pr-3 py-2.5 text-sm bg-surface text-body"
               />
             </div>
             <select
               value={type}
               onChange={(e) => setType(e.target.value)}
-              className="rounded-md border border-black/10 px-3 py-2.5 text-sm bg-white"
+              className="rounded-md border border-border/10 px-3 py-2.5 text-sm bg-surface"
             >
               {TYPE_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>{o.label}</option>
@@ -85,7 +85,7 @@ export default function MyActivity() {
             </select>
             <button
               onClick={() => setSortDesc(!sortDesc)}
-              className="text-sm text-body px-3 py-2.5 rounded-md border border-black/10 hover:bg-gray-50"
+              className="text-sm text-body px-3 py-2.5 rounded-md border border-border/10 hover:bg-surface-alt"
             >
               {sortDesc ? "Newest first" : "Oldest first"}
             </button>
@@ -96,8 +96,8 @@ export default function MyActivity() {
           ) : (
             <div className="space-y-2">
               {filtered.map((e) => (
-                <div key={e.id} className="bg-white rounded-xl border border-black/10 p-4">
-                  <p className="text-sm font-medium text-brand-navy">{e.label}</p>
+                <div key={e.id} className="bg-surface rounded-xl border border-border/10 p-4">
+                  <p className="text-sm font-medium text-heading">{e.label}</p>
                   <p className="text-xs text-body mt-1">
                     {e.actor_name ? `By ${e.actor_name}` : "System"}
                     {e.detail ? ` · ${e.detail}` : ""}

@@ -1,7 +1,8 @@
 import { ReactNode, useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { LogOut, LayoutGrid, User as UserIcon, PlusCircle, History, Menu, X } from "lucide-react";
+import { LogOut, LayoutGrid, User as UserIcon, PlusCircle, History, Menu, X, Sun, Moon } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import { api } from "../lib/api";
 
 interface Department {
@@ -11,6 +12,7 @@ interface Department {
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const [departmentName, setDepartmentName] = useState<string | null>(null);
@@ -61,7 +63,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               key={item.to}
               to={item.to}
               className={`flex items-center gap-2.5 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
-                active ? "bg-brand-orange/10 text-brand-orange" : "text-body hover:bg-black/5 hover:text-brand-navy"
+                active
+                  ? "bg-brand-orange/10 text-brand-orange"
+                  : "text-body hover:bg-surface-alt hover:text-heading"
               }`}
             >
               <Icon size={16} />
@@ -71,30 +75,37 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         })}
       </nav>
 
-      <div className="px-4 py-4 border-t border-black/5">
+      <div className="px-4 py-4 border-t border-border/10">
         <div className="flex items-center gap-3 px-2 py-2">
-          <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gray-100 border border-black/10 shrink-0">
+          <div className="relative w-10 h-10 rounded-full overflow-hidden bg-surface-alt border border-border/10 shrink-0">
             {user?.profile_picture_url ? (
               <img src={user.profile_picture_url} alt={user.name} className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-brand-navy font-medium text-sm">
+              <div className="w-full h-full flex items-center justify-center text-heading font-medium text-sm">
                 {user?.name?.charAt(0).toUpperCase()}
               </div>
             )}
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-medium text-brand-navy leading-tight truncate">{user?.name}</p>
+            <p className="text-sm font-medium text-heading leading-tight truncate">{user?.name}</p>
             <p className="text-xs text-body leading-tight capitalize">{user?.role}</p>
           </div>
         </div>
-        <div className="px-2 mt-2 space-y-0.5 text-xs text-body/80">
+        <div className="px-2 mt-2 space-y-0.5 text-xs text-muted">
           {user?.employee_id && <p>ID {user.employee_id}</p>}
           {user?.job_title && <p>{user.job_title}</p>}
           {departmentName && <p>{departmentName}</p>}
         </div>
         <button
+          onClick={toggleTheme}
+          className="w-full flex items-center gap-2.5 px-2 py-2.5 mt-3 rounded-md text-sm font-medium text-body hover:bg-surface-alt hover:text-heading transition-colors"
+        >
+          {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+          {theme === "dark" ? "Light mode" : "Dark mode"}
+        </button>
+        <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-2.5 px-2 py-2.5 mt-3 rounded-md text-sm font-medium text-body hover:bg-black/5 hover:text-red-600 transition-colors"
+          className="w-full flex items-center gap-2.5 px-2 py-2.5 mt-1 rounded-md text-sm font-medium text-body hover:bg-surface-alt hover:text-red-600 transition-colors"
         >
           <LogOut size={16} />
           Logout
@@ -104,18 +115,18 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   );
 
   return (
-    <div className="min-h-screen">
-      <aside className="hidden md:flex fixed left-0 top-0 h-screen w-64 bg-white border-r border-black/5 flex-col z-40">
-        <Link to="/" className="flex items-center gap-2.5 px-6 py-6 border-b border-black/5">
+    <div className="min-h-screen bg-bg">
+      <aside className="hidden md:flex fixed left-0 top-0 h-screen w-64 bg-surface border-r border-border/10 flex-col z-40">
+        <Link to="/" className="flex items-center gap-2.5 px-6 py-6 border-b border-border/10">
           <img src="/assets/logos/prismma_main_logo.png" alt="Prismma Express" className="h-6" />
         </Link>
-        <p className="px-6 pt-3 pb-4 text-xs text-body/70 tracking-wide uppercase border-b border-black/5">
+        <p className="px-6 pt-3 pb-4 text-xs text-muted tracking-wide uppercase border-b border-border/10">
           Internal Systems Portal
         </p>
         {sidebarContent}
       </aside>
 
-      <header className="md:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-black/5 h-16 flex items-center justify-between px-4">
+      <header className="md:hidden fixed top-0 left-0 right-0 z-50 bg-surface border-b border-border/10 h-16 flex items-center justify-between px-4">
         <Link to="/" className="flex items-center gap-2.5">
           <img src="/assets/logos/prismma_main_logo.png" alt="Prismma Express" className="h-5" />
         </Link>
@@ -123,14 +134,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           type="button"
           aria-label={mobileOpen ? "Close menu" : "Open menu"}
           onClick={() => setMobileOpen((v) => !v)}
-          className="flex items-center justify-center w-10 h-10 rounded-md text-brand-navy"
+          className="flex items-center justify-center w-10 h-10 rounded-md text-heading"
         >
           {mobileOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
       </header>
 
       {mobileOpen && (
-        <div className="md:hidden fixed inset-0 z-40 pt-16 bg-white flex flex-col">
+        <div className="md:hidden fixed inset-0 z-40 pt-16 bg-surface flex flex-col">
           {sidebarContent}
         </div>
       )}

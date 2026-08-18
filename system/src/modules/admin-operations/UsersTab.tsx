@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, Ban, Building2, X as XIcon } from "lucide-react";
 import { api } from "../../lib/api";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import UserDetailPanel from "./UserDetailPanel";
+import PasswordInput from "../../components/PasswordInput";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import { useToast } from "../../context/ToastContext";
 import { useEscapeKey } from "../../lib/useEscapeKey";
@@ -226,7 +227,7 @@ export default function UsersTab({ isSuperadmin }: { isSuperadmin: boolean }) {
             placeholder="Search by name, email, or employee ID"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-md border border-black/10 pl-9 pr-3 py-2.5 text-sm"
+            className="w-full rounded-md border border-border/10 pl-9 pr-3 py-2.5 text-sm bg-surface text-body"
           />
         </div>
         <button
@@ -238,32 +239,46 @@ export default function UsersTab({ isSuperadmin }: { isSuperadmin: boolean }) {
       </div>
 
       {selectedIds.size > 0 && (
-        <div className="flex items-center gap-3 mb-4 bg-brand-navy/5 border border-brand-navy/10 rounded-md px-4 py-3 flex-wrap">
-          <span className="text-sm text-brand-navy font-medium">{selectedIds.size} selected</span>
-          <button onClick={() => setConfirmBulkDisable(true)} className="text-sm text-red-600 hover:underline">
-            Disable Selected
+        <div className="flex items-center gap-4 mb-4 bg-brand-navy/5 border border-brand-navy/10 rounded-md px-4 py-3 flex-wrap">
+          <span className="text-sm text-heading font-medium whitespace-nowrap">{selectedIds.size} selected</span>
+
+          <button
+            onClick={() => setConfirmBulkDisable(true)}
+            className="flex items-center gap-1.5 text-sm font-medium text-red-600 border border-red-200 rounded-md px-3 py-1.5 hover:bg-red-50"
+          >
+            <Ban size={14} /> Disable Selected
           </button>
-          <div className="flex items-center gap-2">
-            <select
-              value={bulkDeptId}
-              onChange={(e) => setBulkDeptId(e.target.value)}
-              className="text-sm border border-black/10 rounded px-2 py-1.5 bg-white"
-            >
-              <option value="">Reassign to department...</option>
-              {departments.map((d) => (
-                <option key={d.id} value={d.id}>{d.name}</option>
-              ))}
-            </select>
+
+          <div className="h-6 w-px bg-brand-navy/15 hidden sm:block" />
+
+          <div className="flex items-center rounded-md border border-border/10 bg-surface overflow-hidden">
+            <div className="flex items-center gap-1.5 px-3 text-body">
+              <Building2 size={14} />
+              <select
+                value={bulkDeptId}
+                onChange={(e) => setBulkDeptId(e.target.value)}
+                className="text-sm bg-transparent py-1.5 focus:outline-none"
+              >
+                <option value="">Reassign to department...</option>
+                {departments.map((d) => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
+                ))}
+              </select>
+            </div>
             <button
               onClick={bulkReassign}
               disabled={!bulkDeptId}
-              className="text-sm text-brand-navy font-medium disabled:opacity-40"
+              className="text-sm font-medium text-white bg-brand-navy px-3 py-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Apply
             </button>
           </div>
-          <button onClick={() => setSelectedIds(new Set())} className="text-sm text-body ml-auto hover:underline">
-            Clear
+
+          <button
+            onClick={() => setSelectedIds(new Set())}
+            className="flex items-center gap-1 text-sm text-body ml-auto hover:text-heading"
+          >
+            <XIcon size={14} /> Clear
           </button>
         </div>
       )}
@@ -271,9 +286,9 @@ export default function UsersTab({ isSuperadmin }: { isSuperadmin: boolean }) {
       {filtered.length === 0 ? (
         <p className="text-sm text-body py-10 text-center">No users found</p>
       ) : (
-        <div className="bg-white rounded-xl border border-black/10 overflow-x-auto">
+        <div className="bg-surface rounded-xl border border-border/10 overflow-x-auto">
           <table className="w-full text-sm min-w-[600px]">
-            <thead className="bg-gray-50 text-left text-body">
+            <thead className="bg-surface-alt text-left text-body">
               <tr>
                 <th className="px-4 py-3 w-10">
                   <input
@@ -284,7 +299,7 @@ export default function UsersTab({ isSuperadmin }: { isSuperadmin: boolean }) {
                   />
                 </th>
                 {columns.map((c) => (
-                  <th key={c.key} onClick={() => sortBy(c.key)} className="px-4 py-3 cursor-pointer select-none hover:text-brand-navy">
+                  <th key={c.key} onClick={() => sortBy(c.key)} className="px-4 py-3 cursor-pointer select-none hover:text-heading">
                     {c.label}
                     {sortKey === c.key ? (sortDesc ? " ↓" : " ↑") : ""}
                   </th>
@@ -296,13 +311,13 @@ export default function UsersTab({ isSuperadmin }: { isSuperadmin: boolean }) {
                 <tr
                   key={u.id}
                   onClick={() => setSelectedUserId(u.id)}
-                  className="border-t border-black/5 cursor-pointer hover:bg-gray-50"
+                  className="border-t border-border/10 cursor-pointer hover:bg-surface-alt"
                 >
                   <td className="px-4 py-3" onClick={(e) => toggleSelect(u.id, e)}>
                     <input type="checkbox" checked={selectedIds.has(u.id)} onChange={() => {}} />
                   </td>
                   <td className="px-4 py-3">
-                    <p className="font-medium text-brand-navy">{u.name}</p>
+                    <p className="font-medium text-heading">{u.name}</p>
                     <p className="text-xs text-body">{u.email}</p>
                   </td>
                   <td className="px-4 py-3">{departmentName(u.department_id)}</td>
@@ -327,23 +342,23 @@ export default function UsersTab({ isSuperadmin }: { isSuperadmin: boolean }) {
 
       {showCreate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="bg-white rounded-xl border border-black/10 p-6 max-w-md w-full shadow-lg">
-            <h3 className="font-display text-lg font-semibold text-brand-navy mb-4">Add User</h3>
+          <div className="bg-surface rounded-xl border border-border/10 p-6 max-w-md w-full shadow-lg">
+            <h3 className="font-display text-lg font-semibold text-heading mb-4">Add User</h3>
             <form onSubmit={submitCreate} className="space-y-3">
-              <input required placeholder="Full name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full rounded-md border border-black/10 px-3 py-2.5 text-sm" />
-              <input required type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full rounded-md border border-black/10 px-3 py-2.5 text-sm" />
-              <input required type="password" placeholder="Temporary password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="w-full rounded-md border border-black/10 px-3 py-2.5 text-sm" />
-              <input required placeholder="Employee ID" value={form.employee_id} onChange={(e) => setForm({ ...form, employee_id: e.target.value })} className="w-full rounded-md border border-black/10 px-3 py-2.5 text-sm" />
-              <input placeholder="Phone number" value={form.phone_number} onChange={(e) => setForm({ ...form, phone_number: e.target.value })} className="w-full rounded-md border border-black/10 px-3 py-2.5 text-sm" />
-              <select value={form.department_id} onChange={(e) => setForm({ ...form, department_id: e.target.value })} className="w-full rounded-md border border-black/10 px-3 py-2.5 text-sm bg-white">
+              <input required placeholder="Full name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full rounded-md border border-border/10 px-3 py-2.5 text-sm bg-surface text-body" />
+              <input required type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full rounded-md border border-border/10 px-3 py-2.5 text-sm bg-surface text-body" />
+              <PasswordInput required placeholder="Temporary password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="px-3 py-2.5 text-sm" />
+              <input required placeholder="Employee ID" value={form.employee_id} onChange={(e) => setForm({ ...form, employee_id: e.target.value })} className="w-full rounded-md border border-border/10 px-3 py-2.5 text-sm bg-surface text-body" />
+              <input placeholder="Phone number" value={form.phone_number} onChange={(e) => setForm({ ...form, phone_number: e.target.value })} className="w-full rounded-md border border-border/10 px-3 py-2.5 text-sm bg-surface text-body" />
+              <select value={form.department_id} onChange={(e) => setForm({ ...form, department_id: e.target.value })} className="w-full rounded-md border border-border/10 px-3 py-2.5 text-sm bg-surface text-body">
                 <option value="">No department</option>
                 {departments.map((d) => (
                   <option key={d.id} value={d.id}>{d.name}</option>
                 ))}
               </select>
-              <input placeholder="Job title" value={form.job_title} onChange={(e) => setForm({ ...form, job_title: e.target.value })} className="w-full rounded-md border border-black/10 px-3 py-2.5 text-sm" />
+              <input placeholder="Job title" value={form.job_title} onChange={(e) => setForm({ ...form, job_title: e.target.value })} className="w-full rounded-md border border-border/10 px-3 py-2.5 text-sm bg-surface text-body" />
               {isSuperadmin && (
-                <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} className="w-full rounded-md border border-black/10 px-3 py-2.5 text-sm bg-white">
+                <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} className="w-full rounded-md border border-border/10 px-3 py-2.5 text-sm bg-surface text-body">
                   <option value="staff">Staff</option>
                   <option value="admin">Admin</option>
                   <option value="superadmin">Superadmin</option>
@@ -351,7 +366,7 @@ export default function UsersTab({ isSuperadmin }: { isSuperadmin: boolean }) {
               )}
               {createError && <p className="text-sm text-red-600">{createError}</p>}
               <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={attemptCloseCreate} className="text-sm text-body px-4 py-2 rounded-md hover:bg-gray-50">
+                <button type="button" onClick={attemptCloseCreate} className="text-sm text-body px-4 py-2 rounded-md hover:bg-surface-alt">
                   Cancel
                 </button>
                 <button disabled={creating} type="submit" className="text-sm font-medium text-white bg-brand-orange px-4 py-2 rounded-md hover:opacity-90 disabled:opacity-60">

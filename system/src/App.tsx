@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext";
+import { ThemeProvider } from "./context/ThemeContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import GlobalBackground from "./components/GlobalBackground";
 import InactivityMonitor from "./components/InactivityMonitor";
@@ -15,58 +16,60 @@ import ModuleRoute from "./pages/ModuleRoute";
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <ToastProvider>
-        <AuthProvider>
-          <GlobalBackground />
-          <InactivityMonitor />
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/register" element={<Register />} />
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/profile"
-              element={
-                <ProtectedRoute>
-                  <Profile />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/my-activity"
-              element={
-                <ProtectedRoute>
-                  <MyActivity />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/module-access"
-              element={
-                <ProtectedRoute>
-                  <ModuleAccess />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/modules/:slug"
-              element={
-                <ProtectedRoute>
-                  <ModuleRoute />
-                </ProtectedRoute>
-              }
-            />
-          </Routes>
-        </AuthProvider>
-      </ToastProvider>
-    </BrowserRouter>
+    <ThemeProvider>
+      <BrowserRouter>
+        <ToastProvider>
+          <AuthProvider>
+            <GlobalBackground />
+            <InactivityMonitor />
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/register" element={<Register />} />
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/my-activity"
+                element={
+                  <ProtectedRoute>
+                    <MyActivity />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/module-access"
+                element={
+                  <ProtectedRoute>
+                    <ModuleAccess />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/modules/:slug"
+                element={
+                  <ProtectedRoute>
+                    <ModuleRoute />
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+          </AuthProvider>
+        </ToastProvider>
+      </BrowserRouter>
+    </ThemeProvider>
   );
 }

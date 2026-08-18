@@ -66,7 +66,7 @@ export default function RegistrationsTab() {
           placeholder="Search by name, email, or employee ID"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full rounded-md border border-black/10 pl-9 pr-3 py-2.5 text-sm"
+          className="w-full rounded-md border border-border/10 pl-9 pr-3 py-2.5 text-sm bg-surface text-body"
         />
       </div>
 
@@ -78,9 +78,9 @@ export default function RegistrationsTab() {
       ) : (
         <div className="space-y-3">
           {filtered.map((u) => (
-            <div key={u.id} className="bg-white rounded-xl border border-black/10 p-5 flex items-center justify-between flex-wrap gap-3">
+            <div key={u.id} className="bg-surface rounded-xl border border-border/10 p-5 flex items-center justify-between flex-wrap gap-3">
               <div>
-                <p className="font-medium text-brand-navy">{u.name}</p>
+                <p className="font-medium text-heading">{u.name}</p>
                 <p className="text-sm text-body">{u.email} &middot; ID {u.employee_id}</p>
               </div>
               {rejectingId === u.id ? (
@@ -90,7 +90,7 @@ export default function RegistrationsTab() {
                     placeholder="Reason for rejection"
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
-                    className="rounded-md border border-black/10 px-3 py-2 text-sm"
+                    className="rounded-md border border-border/10 px-3 py-2 text-sm bg-surface text-body"
                   />
                   <button onClick={() => reject(u.id)} className="text-sm text-red-600 font-medium">Confirm</button>
                   <button onClick={() => setRejectingId(null)} className="text-sm text-body">Cancel</button>

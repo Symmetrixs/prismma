@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
-import { Plus, Pencil, Trash2, Newspaper, X, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, Pencil, Trash2, Newspaper, X, ArrowUp, ArrowDown, History } from "lucide-react";
 import { api } from "../../lib/api";
 import DashboardLayout from "../../components/DashboardLayout";
 import ConfirmDialog from "../../components/ConfirmDialog";
+import ModuleLogViewer from "../../components/ModuleLogViewer";
 import { useToast } from "../../context/ToastContext";
 import { useEscapeKey } from "../../lib/useEscapeKey";
+import { useAuth } from "../../context/AuthContext";
 
 interface MediaItem {
   media_type: "image" | "video";
@@ -42,6 +44,9 @@ export default function NewsEditor() {
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [deletingArticle, setDeletingArticle] = useState<Article | null>(null);
+  const [showLog, setShowLog] = useState(false);
+  const { user } = useAuth();
+  const isSuperadmin = user?.role === "superadmin";
   const [originalForm, setOriginalForm] = useState(emptyForm);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const toast = useToast();
@@ -170,40 +175,50 @@ export default function NewsEditor() {
 
   return (
     <DashboardLayout>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
-          <h1 className="font-display text-2xl font-semibold text-brand-navy">News Editor</h1>
+          <h1 className="font-display text-2xl font-semibold text-heading">News Editor</h1>
           <p className="text-body mt-1">Publish and manage articles on the public news portal</p>
         </div>
-        <button
-          onClick={openCreate}
-          className="inline-flex items-center gap-2 rounded-md bg-brand-orange px-5 py-2.5 text-sm font-medium text-white hover:opacity-90 transition-opacity"
-        >
-          <Plus size={16} />
-          New Article
-        </button>
+        <div className="flex items-center gap-2">
+          {isSuperadmin && (
+            <button
+              onClick={() => setShowLog(true)}
+              className="flex items-center gap-1.5 rounded-md border border-border/10 px-4 py-2.5 text-sm text-body hover:bg-surface-alt"
+            >
+              <History size={14} /> Log
+            </button>
+          )}
+          <button
+            onClick={openCreate}
+            className="inline-flex items-center gap-2 rounded-md bg-brand-orange px-5 py-2.5 text-sm font-medium text-white hover:opacity-90 transition-opacity"
+          >
+            <Plus size={16} />
+            New Article
+          </button>
+        </div>
       </div>
 
       {loading ? (
         <p className="text-body">Loading...</p>
       ) : articles.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center bg-white rounded-xl border border-black/10">
+        <div className="flex flex-col items-center justify-center py-20 text-center bg-surface rounded-xl border border-border/10">
           <Newspaper size={32} className="text-body/40 mb-3" />
           <p className="text-body">No articles yet</p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-black/10 divide-y divide-black/5">
+        <div className="bg-surface rounded-xl border border-border/10 divide-y divide-black/5">
           {articles.map((a) => (
             <div key={a.id} className="flex items-center justify-between px-5 py-4 flex-wrap gap-3">
               <div>
-                <p className="font-medium text-brand-navy">{a.title}</p>
+                <p className="font-medium text-heading">{a.title}</p>
                 <p className="text-sm text-body">
                   <span className="capitalize">{a.category}</span> &middot;{" "}
                   {a.published ? "Published" : "Draft"} &middot; {a.media.length} media item{a.media.length !== 1 ? "s" : ""}
                 </p>
               </div>
               <div className="flex items-center gap-3">
-                <button onClick={() => openEdit(a)} className="flex items-center gap-1.5 text-sm text-brand-navy hover:underline">
+                <button onClick={() => openEdit(a)} className="flex items-center gap-1.5 text-sm text-heading hover:underline">
                   <Pencil size={14} /> Edit
                 </button>
                 <button onClick={() => setDeletingArticle(a)} className="flex items-center gap-1.5 text-sm text-red-600 hover:underline">
@@ -217,9 +232,9 @@ export default function NewsEditor() {
 
       {showForm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-6 z-50">
-          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
+          <div className="bg-surface rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-display text-lg font-semibold text-brand-navy">
+              <h2 className="font-display text-lg font-semibold text-heading">
                 {editing ? "Edit Article" : "New Article"}
               </h2>
               <button onClick={attemptCloseForm}>
@@ -239,13 +254,13 @@ export default function NewsEditor() {
                 placeholder="Title"
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
-                className="w-full rounded-md border border-black/10 px-4 py-2.5 text-sm"
+                className="w-full rounded-md border border-border/10 px-4 py-2.5 text-sm bg-surface text-body"
               />
               <input
                 placeholder="Excerpt"
                 value={form.excerpt}
                 onChange={(e) => setForm({ ...form, excerpt: e.target.value })}
-                className="w-full rounded-md border border-black/10 px-4 py-2.5 text-sm"
+                className="w-full rounded-md border border-border/10 px-4 py-2.5 text-sm bg-surface text-body"
               />
               <textarea
                 required
@@ -253,7 +268,7 @@ export default function NewsEditor() {
                 placeholder="Content"
                 value={form.content}
                 onChange={(e) => setForm({ ...form, content: e.target.value })}
-                className="w-full rounded-md border border-black/10 px-4 py-2.5 text-sm"
+                className="w-full rounded-md border border-border/10 px-4 py-2.5 text-sm bg-surface text-body"
               />
 
               <div>
@@ -274,8 +289,8 @@ export default function NewsEditor() {
                 {form.media.length > 0 && (
                   <div className="space-y-2">
                     {form.media.map((item, i) => (
-                      <div key={i} className="flex items-center gap-3 bg-gray-50 rounded-md px-3 py-2 text-sm">
-                        <div className="w-12 h-12 rounded overflow-hidden bg-gray-200 shrink-0">
+                      <div key={i} className="flex items-center gap-3 bg-surface-alt rounded-md px-3 py-2 text-sm">
+                        <div className="w-12 h-12 rounded overflow-hidden bg-surface-alt shrink-0">
                           {item.media_type === "image" ? (
                             <img src={item.url} alt="" className="w-full h-full object-cover" />
                           ) : (
@@ -302,7 +317,7 @@ export default function NewsEditor() {
                 <select
                   value={form.category}
                   onChange={(e) => setForm({ ...form, category: e.target.value as "malaysia" | "global" })}
-                  className="rounded-md border border-black/10 px-4 py-2.5 text-sm bg-white"
+                  className="rounded-md border border-border/10 px-4 py-2.5 text-sm bg-surface"
                 >
                   <option value="malaysia">Malaysia</option>
                   <option value="global">Global</option>
@@ -345,6 +360,10 @@ export default function NewsEditor() {
           onConfirm={confirmDelete}
           onCancel={() => setDeletingArticle(null)}
         />
+      )}
+
+      {showLog && (
+        <ModuleLogViewer moduleSlug="news-editor" title="News Editor Log" onClose={() => setShowLog(false)} />
       )}
     </DashboardLayout>
   );

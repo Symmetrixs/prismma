@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react";
-import { Package, Clock, Check, RotateCcw } from "lucide-react";
+import { Package, Clock, Check, RotateCcw, ShieldCheck } from "lucide-react";
 import { api } from "../lib/api";
 import DashboardLayout from "../components/DashboardLayout";
 import { moduleIconMap } from "../lib/modules";
 import type { ModuleDef, AccessRecord } from "../lib/modules";
 import { useToast } from "../context/ToastContext";
+import { useAuth } from "../context/AuthContext";
 
 export default function ModuleAccess() {
+  const { user } = useAuth();
+  const isSuperadmin = user?.role === "superadmin";
   const [modules, setModules] = useState<ModuleDef[]>([]);
   const [access, setAccess] = useState<AccessRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,21 +58,31 @@ export default function ModuleAccess() {
 
   return (
     <DashboardLayout>
-      <h1 className="font-display text-2xl font-semibold text-brand-navy mb-1">Module Access</h1>
+      <h1 className="font-display text-2xl font-semibold text-heading mb-1">Module Access</h1>
       <p className="text-body mb-8">Request access to modules you don't currently have</p>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      {isSuperadmin ? (
+        <div className="bg-surface rounded-xl border border-border/10 p-10 text-center max-w-md">
+          <div className="mx-auto mb-4 flex items-center justify-center w-12 h-12 rounded-full bg-brand-navy/10 text-heading">
+            <ShieldCheck size={22} />
+          </div>
+          <p className="text-body">
+            As superadmin, you automatically have access to every active module. There's nothing to request here.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
         {modules.map((mod) => {
           const status = accessFor(mod.id);
           const Icon = moduleIconMap[mod.slug] ?? Package;
           const isComingSoon = mod.status === "coming_soon";
 
           return (
-            <div key={mod.id} className="rounded-xl bg-white border border-black/10 p-6">
+            <div key={mod.id} className="rounded-xl bg-surface border border-border/10 p-6">
               <div className="inline-flex items-center justify-center w-11 h-11 rounded-lg bg-brand-orange/10 text-brand-orange mb-4">
                 <Icon size={22} />
               </div>
-              <h3 className="font-display font-medium text-brand-navy">{mod.name}</h3>
+              <h3 className="font-display font-medium text-heading">{mod.name}</h3>
               <p className="text-sm text-body mt-1">{mod.description}</p>
 
               {status === "approved" ? (
@@ -90,7 +103,7 @@ export default function ModuleAccess() {
                     Rejected, request again
                   </button>
                   {rejectionReasonFor(mod.id) && (
-                    <p className="text-xs text-body/70 mt-1">Reason: {rejectionReasonFor(mod.id)}</p>
+                    <p className="text-xs text-muted mt-1">Reason: {rejectionReasonFor(mod.id)}</p>
                   )}
                 </div>
               ) : status === "revoked" ? (
@@ -105,7 +118,7 @@ export default function ModuleAccess() {
                 <button
                   onClick={() => handleRequest(mod.id)}
                   disabled={requestingId === mod.id || isComingSoon}
-                  className="text-sm text-brand-navy font-medium mt-4 hover:underline disabled:opacity-50"
+                  className="text-sm text-heading font-medium mt-4 hover:underline disabled:opacity-50"
                 >
                   {requestingId === mod.id ? "Requesting..." : "Request Access"}
                 </button>
@@ -113,7 +126,8 @@ export default function ModuleAccess() {
             </div>
           );
         })}
-      </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

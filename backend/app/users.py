@@ -67,6 +67,7 @@ class UserSelfUpdate(BaseModel):
 
 class AdminUserUpdate(BaseModel):
     name: str | None = None
+    email: str | None = None
     phone_number: str | None = None
     department_id: int | None = None
     job_title: str | None = None
@@ -152,8 +153,7 @@ def user_analytics(
     for user in users:
         key = user.department_id
         if key not in buckets:
-            buckets[key] = {"total": 0, "active": 0,
-                            "pending": 0, "disabled": 0}
+            buckets[key] = {"total": 0, "active": 0, "pending": 0, "disabled": 0}
         if user.account_status == "disabled":
             buckets[key]["disabled"] += 1
             if current_user.role == "superadmin":
@@ -169,8 +169,7 @@ def user_analytics(
     for department_id, counts in buckets.items():
         result.append(DepartmentAnalytics(
             department_id=department_id,
-            department_name=departments.get(
-                department_id, "Unassigned") if department_id else "Unassigned",
+            department_name=departments.get(department_id, "Unassigned") if department_id else "Unassigned",
             total=counts["total"],
             active=counts["active"],
             pending=counts["pending"],
@@ -204,8 +203,7 @@ def get_user_detail(
 
     department_name = None
     if user.department_id:
-        department = db.query(Department).filter(
-            Department.id == user.department_id).first()
+        department = db.query(Department).filter(Department.id == user.department_id).first()
         department_name = department.name if department else None
 
     access_rows = (
@@ -256,12 +254,10 @@ def create_user_by_admin(
     current_user: User = Depends(require_admin),
 ):
     existing = db.query(User).filter(
-        (User.email == payload.email) | (
-            User.employee_id == payload.employee_id)
+        (User.email == payload.email) | (User.employee_id == payload.employee_id)
     ).first()
     if existing:
-        raise HTTPException(
-            status_code=400, detail="Email or employee ID already in use")
+        raise HTTPException(status_code=400, detail="Email or employee ID already in use")
 
     role = "staff"
     if current_user.role == "superadmin" and payload.role:
@@ -319,8 +315,7 @@ def reject_registration(
 
     user.account_status = "rejected"
     user.rejection_reason = payload.reason
-    _log_action(db, user.id, "registration_rejected",
-                current_user.id, payload.reason)
+    _log_action(db, user.id, "registration_rejected", current_user.id, payload.reason)
     db.commit()
     db.refresh(user)
     return user
@@ -338,7 +333,25 @@ def update_user(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    for field, value in payload.model_dump(exclude_unset=True).items():
+    update_data = payload.model_dump(exclude_unset=True)
+
+    if "email" in update_data and update_data["email"]:
+        conflict = db.query(User).filter(User.email == update_data["email"], User.id != user_id).first()
+        if conflict:
+            raise HTTPException(
+                status_code=400,
+                detail=f"This email is already used by {conflict.name}. Accounts are looked up by email at login, so two accounts can't share one.",
+            )
+
+    if "employee_id" in update_data and update_data["employee_id"]:
+        conflict = db.query(User).filter(User.employee_id == update_data["employee_id"], User.id != user_id).first()
+        if conflict:
+            raise HTTPException(
+                status_code=400,
+                detail=f"This employee ID is already used by {conflict.name}.",
+            )
+
+    for field, value in update_data.items():
         setattr(user, field, value)
     db.commit()
     db.refresh(user)
@@ -363,8 +376,7 @@ def disable_user(
             User.id != user_id,
         ).count()
         if remaining == 0:
-            raise HTTPException(
-                status_code=400, detail="Cannot disable the last active superadmin")
+            raise HTTPException(status_code=400, detail="Cannot disable the last active superadmin")
 
     user.account_status = "disabled"
     _log_action(db, user.id, "disabled", current_user.id)
@@ -423,8 +435,7 @@ def set_block_status(
         raise HTTPException(status_code=404, detail="User not found")
 
     user.is_blocked = payload.is_blocked
-    _log_action(
-        db, user.id, "blocked" if payload.is_blocked else "unblocked", current_user.id)
+    _log_action(db, user.id, "blocked" if payload.is_blocked else "unblocked", current_user.id)
     db.commit()
     db.refresh(user)
     return user
@@ -445,11 +456,9 @@ def change_role(
         raise HTTPException(status_code=404, detail="User not found")
 
     if user.role == "superadmin" and payload.new_role != "superadmin":
-        remaining = db.query(User).filter(
-            User.role == "superadmin", User.id != user_id).count()
+        remaining = db.query(User).filter(User.role == "superadmin", User.id != user_id).count()
         if remaining == 0:
-            raise HTTPException(
-                status_code=400, detail="Cannot remove the last superadmin")
+            raise HTTPException(status_code=400, detail="Cannot remove the last superadmin")
 
     old_role = user.role
     user.role = payload.new_role

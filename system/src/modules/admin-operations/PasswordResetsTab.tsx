@@ -36,9 +36,9 @@ export default function PasswordResetsTab() {
   return (
     <div className="space-y-3">
       {requests.map((r: any) => (
-        <div key={r.id} className="bg-white rounded-xl border border-black/10 p-5 flex items-center justify-between">
+        <div key={r.id} className="bg-surface rounded-xl border border-border/10 p-5 flex items-center justify-between">
           <div>
-            <p className="font-medium text-brand-navy">{r.user_name}</p>
+            <p className="font-medium text-heading">{r.user_name}</p>
             <p className="text-sm text-body">{r.user_email} &middot; Requested {new Date(r.requested_at).toLocaleString()}</p>
           </div>
           <button onClick={() => approve(r.id)} className="flex items-center gap-1.5 rounded-md bg-green-600 text-white px-4 py-2 text-sm font-medium hover:opacity-90">

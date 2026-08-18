@@ -8,11 +8,30 @@
 :root {
   --font-sans: 'General Sans', sans-serif;
   --font-display: 'Space Grotesk', sans-serif;
+
+  --color-bg: 249 250 251;
+  --color-surface: 255 255 255;
+  --color-surface-alt: 243 244 246;
+  --color-heading: 0 0 102;
+  --color-body: 77 77 77;
+  --color-muted: 107 114 128;
+  --color-border: 0 0 0;
+}
+
+.dark {
+  --color-bg: 15 17 21;
+  --color-surface: 26 29 35;
+  --color-surface-alt: 34 38 45;
+  --color-heading: 255 255 255;
+  --color-body: 209 213 219;
+  --color-muted: 156 163 175;
+  --color-border: 255 255 255;
 }
 
 body {
   font-family: var(--font-sans);
-  color: #4D4D4D;
-  background-color: #F9FAFB;
+  background-color: rgb(var(--color-bg));
+  color: rgb(var(--color-body));
   font-size: 19px;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }

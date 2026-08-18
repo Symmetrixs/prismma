@@ -75,20 +75,20 @@ export default function AnalyticsTab({ isSuperadmin }: { isSuperadmin: boolean }
   return (
     <div>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        <div className="bg-white rounded-xl border border-black/10 p-4">
+        <div className="bg-surface rounded-xl border border-border/10 p-4">
           <p className="text-xs text-body">Total</p>
-          <p className="text-2xl font-display font-semibold text-brand-navy">{totals.total}</p>
+          <p className="text-2xl font-display font-semibold text-heading">{totals.total}</p>
         </div>
-        <div className="bg-white rounded-xl border border-black/10 p-4">
+        <div className="bg-surface rounded-xl border border-border/10 p-4">
           <p className="text-xs text-body">Active</p>
           <p className="text-2xl font-display font-semibold text-green-600">{totals.active}</p>
         </div>
-        <div className="bg-white rounded-xl border border-black/10 p-4">
+        <div className="bg-surface rounded-xl border border-border/10 p-4">
           <p className="text-xs text-body">Pending</p>
           <p className="text-2xl font-display font-semibold text-amber-600">{totals.pending}</p>
         </div>
         {isSuperadmin && (
-          <div className="bg-white rounded-xl border border-black/10 p-4">
+          <div className="bg-surface rounded-xl border border-border/10 p-4">
             <p className="text-xs text-body">Disabled</p>
             <p className="text-2xl font-display font-semibold text-gray-500">{totals.disabled}</p>
           </div>
@@ -102,23 +102,23 @@ export default function AnalyticsTab({ isSuperadmin }: { isSuperadmin: boolean }
             placeholder="Search department"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-md border border-black/10 pl-9 pr-3 py-2.5 text-sm"
+            className="w-full rounded-md border border-border/10 pl-9 pr-3 py-2.5 text-sm bg-surface text-body"
           />
         </div>
         <button
           onClick={exportCsv}
-          className="flex items-center gap-1.5 rounded-md border border-black/10 px-4 py-2.5 text-sm text-body hover:bg-gray-50"
+          className="flex items-center gap-1.5 rounded-md border border-border/10 px-4 py-2.5 text-sm text-body hover:bg-surface-alt"
         >
           <Download size={14} /> Export CSV
         </button>
       </div>
 
-      <div className="bg-white rounded-xl border border-black/10 overflow-x-auto">
+      <div className="bg-surface rounded-xl border border-border/10 overflow-x-auto">
         <table className="w-full text-sm min-w-[480px]">
-          <thead className="bg-gray-50 text-left text-body">
+          <thead className="bg-surface-alt text-left text-body">
             <tr>
               {columns.map((c) => (
-                <th key={c.key} onClick={() => sortBy(c.key)} className="px-4 py-3 cursor-pointer select-none hover:text-brand-navy">
+                <th key={c.key} onClick={() => sortBy(c.key)} className="px-4 py-3 cursor-pointer select-none hover:text-heading">
                   {c.label}
                   {sortKey === c.key ? (sortDesc ? " ↓" : " ↑") : ""}
                 </th>
@@ -127,8 +127,8 @@ export default function AnalyticsTab({ isSuperadmin }: { isSuperadmin: boolean }
           </thead>
           <tbody>
             {filtered.map((r) => (
-              <tr key={r.department_id ?? "none"} className="border-t border-black/5">
-                <td className="px-4 py-3 font-medium text-brand-navy">{r.department_name}</td>
+              <tr key={r.department_id ?? "none"} className="border-t border-border/10">
+                <td className="px-4 py-3 font-medium text-heading">{r.department_name}</td>
                 <td className="px-4 py-3">{r.total}</td>
                 <td className="px-4 py-3">{r.active}</td>
                 <td className="px-4 py-3">{r.pending}</td>
