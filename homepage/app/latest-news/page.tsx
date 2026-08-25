@@ -71,7 +71,7 @@ export default async function LatestNewsPage({
                     className="block rounded-xl overflow-hidden border border-black/5 shadow-sm hover:shadow-lg transition-shadow"
                   >
                     <div className="relative h-48 bg-gray-100">
-                      <NewsMedia media={article.media} className="w-full h-full" />
+                      <NewsMedia media={article.media} className="w-full h-full" fit="contain-blur" />
                     </div>
                     <div className="p-6">
                       <h3 className="font-display text-lg font-medium text-brand-navy">{article.title}</h3>

@@ -3,22 +3,30 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { Info, Package, Handshake, Newspaper, Mail, Route, Menu, X } from "lucide-react";
+import { Info, Package, Handshake, Newspaper, Mail, Route, Briefcase, Menu, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import LoginButton from "./LoginButton";
+import type { NavPage } from "@/lib/site-settings";
 
-const navLinks = [
-  { href: "/about", label: "About", icon: Info },
-  { href: "/services", label: "Services", icon: Package },
-  { href: "/our-partners", label: "Our Partners", icon: Handshake },
-  { href: "/track-shipment", label: "Track Shipment", icon: Route },
-  { href: "/latest-news", label: "Latest News", icon: Newspaper },
-  { href: "/contact", label: "Contact", icon: Mail },
-];
+const ICON_MAP: Record<string, typeof Info> = {
+  about: Info,
+  services: Package,
+  "our-partners": Handshake,
+  "track-shipment": Route,
+  "latest-news": Newspaper,
+  contact: Mail,
+  careers: Briefcase,
+};
 
-export default function Navbar() {
+export default function Navbar({ nav }: { nav: NavPage[] }) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const visibleSlugs = new Set(nav.map((p) => p.slug));
+  const navLinks = nav
+    .filter((p) => p.slug !== "get-a-quote" && p.slug !== "careers")
+    .map((p) => ({ href: `/${p.slug}`, label: p.label, icon: ICON_MAP[p.slug] || Info }));
+  const showGetAQuote = visibleSlugs.has("get-a-quote");
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -68,12 +76,14 @@ export default function Navbar() {
         </nav>
 
         <div className="hidden 2xl:flex items-center gap-4 shrink-0">
-          <Link
-            href="/get-a-quote"
-            className="rounded-md bg-brand-orange px-5 py-3 text-base font-medium text-white hover:opacity-90 transition-opacity whitespace-nowrap"
-          >
-            Get a Quote
-          </Link>
+          {showGetAQuote && (
+            <Link
+              href="/get-a-quote"
+              className="rounded-md bg-brand-orange px-5 py-3 text-base font-medium text-white hover:opacity-90 transition-opacity whitespace-nowrap"
+            >
+              Get a Quote
+            </Link>
+          )}
           <LoginButton label="Login" size="large" />
         </div>
 
@@ -120,13 +130,15 @@ export default function Navbar() {
                 );
               })}
               <div className="pt-4 space-y-3">
-                <Link
-                  href="/get-a-quote"
-                  onClick={() => setMobileOpen(false)}
-                  className="block text-center rounded-md bg-brand-orange px-5 py-3 text-sm font-medium text-white hover:opacity-90 transition-opacity"
-                >
-                  Get a Quote
-                </Link>
+                {showGetAQuote && (
+                  <Link
+                    href="/get-a-quote"
+                    onClick={() => setMobileOpen(false)}
+                    className="block text-center rounded-md bg-brand-orange px-5 py-3 text-sm font-medium text-white hover:opacity-90 transition-opacity"
+                  >
+                    Get a Quote
+                  </Link>
+                )}
                 <LoginButton />
               </div>
             </nav>

@@ -15,6 +15,7 @@ const inputClass =
 
 export default function Register() {
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [registrationEnabled, setRegistrationEnabled] = useState<boolean | null>(null);
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -31,6 +32,7 @@ export default function Register() {
 
   useEffect(() => {
     api.getDepartments().then(setDepartments).catch(() => {});
+    api.getPublicRegistrationEnabled().then((r) => setRegistrationEnabled(r.enabled)).catch(() => setRegistrationEnabled(true));
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -56,6 +58,22 @@ export default function Register() {
     } finally {
       setLoading(false);
     }
+  }
+
+  if (registrationEnabled === false) {
+    return (
+      <div className="relative min-h-screen flex items-center justify-center px-6">
+        <div className="max-w-md text-center bg-surface/95 backdrop-blur rounded-xl border border-border/10 shadow-sm p-8">
+          <h1 className="font-display text-2xl font-semibold text-heading">Registration Closed</h1>
+          <p className="mt-3 text-body">
+            New accounts are currently created directly by an admin. Reach out to your admin if you need access.
+          </p>
+          <Link to="/login" className="inline-block mt-6 text-brand-orange font-medium hover:underline">
+            Back to Login
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   if (submitted) {

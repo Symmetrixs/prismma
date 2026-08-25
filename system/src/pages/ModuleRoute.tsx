@@ -32,6 +32,14 @@ export default function ModuleRoute() {
         return;
       }
 
+      if (slug === "site-settings") {
+        if (active) {
+          setAllowed(false);
+          setChecking(false);
+        }
+        return;
+      }
+
       if (slug === "admin-operations") {
         if (user?.role !== "admin") {
           if (active) {

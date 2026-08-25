@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Shield, ArrowRight, Loader2 } from "lucide-react";
+import { Shield, ArrowRight, Loader2, Settings } from "lucide-react";
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import DashboardLayout from "../components/DashboardLayout";
@@ -39,7 +39,7 @@ export default function Dashboard() {
   }, [isAdminTier, isSuperadmin]);
 
   const approvedModules = modules.filter((mod) => {
-    if (mod.slug === "admin-operations") return false;
+    if (mod.slug === "admin-operations" || mod.slug === "site-settings") return false;
     if (mod.status !== "active") return false;
     if (isSuperadmin) return true;
     return access.some((a) => a.module_id === mod.id && a.status === "approved");
@@ -97,6 +97,22 @@ export default function Dashboard() {
               <p className="text-sm text-body mt-1">
                 {pendingCount > 0 ? `${pendingCount} item${pendingCount !== 1 ? "s" : ""} need attention` : "Manage users, approvals, and modules"}
               </p>
+              <span className="inline-flex items-center gap-1 text-sm text-brand-orange font-medium mt-4">
+                Open <ArrowRight size={14} />
+              </span>
+            </button>
+          )}
+
+          {isSuperadmin && (
+            <button
+              onClick={() => navigate("/modules/site-settings")}
+              className="relative text-left rounded-xl bg-surface border border-border/10 p-6 hover:shadow-md transition-shadow"
+            >
+              <div className="inline-flex items-center justify-center w-11 h-11 rounded-lg bg-brand-navy/10 dark:bg-brand-navy/30 text-heading mb-4">
+                <Settings size={22} />
+              </div>
+              <h3 className="font-display font-medium text-heading">Site Settings</h3>
+              <p className="text-sm text-body mt-1">Control the public site and internal system behavior</p>
               <span className="inline-flex items-center gap-1 text-sm text-brand-orange font-medium mt-4">
                 Open <ArrowRight size={14} />
               </span>

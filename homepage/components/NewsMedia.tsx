@@ -8,9 +8,10 @@ interface NewsMediaProps {
   media: NewsMediaItem[];
   className?: string;
   intervalMs?: number;
+  fit?: "cover" | "contain-blur";
 }
 
-export default function NewsMedia({ media, className = "", intervalMs = 3500 }: NewsMediaProps) {
+export default function NewsMedia({ media, className = "", intervalMs = 3500, fit = "cover" }: NewsMediaProps) {
   const sorted = [...media].sort((a, b) => a.order - b.order);
   const [index, setIndex] = useState(0);
   const [inView, setInView] = useState(false);
@@ -64,11 +65,27 @@ export default function NewsMedia({ media, className = "", intervalMs = 3500 }: 
             muted
             playsInline
             preload="none"
-            className="w-full h-full object-cover"
+            className={`w-full h-full relative z-10 ${fit === "contain-blur" ? "object-contain" : "object-cover"}`}
           />
         ) : (
           <div className="w-full h-full bg-gray-200 animate-pulse" />
         )
+      ) : fit === "contain-blur" ? (
+        <>
+          <img
+            src={current.url}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 w-full h-full object-cover scale-110 blur-2xl opacity-60"
+          />
+          <img
+            key={current.url}
+            src={current.url}
+            alt=""
+            loading="lazy"
+            className="relative z-10 w-full h-full object-contain"
+          />
+        </>
       ) : (
         <img
           key={current.url}
@@ -80,7 +97,7 @@ export default function NewsMedia({ media, className = "", intervalMs = 3500 }: 
       )}
 
       {sorted.length > 1 && (
-        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
+        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-20 flex gap-1.5">
           {sorted.map((_, i) => (
             <span
               key={i}

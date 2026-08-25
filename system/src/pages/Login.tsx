@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { LogIn, ArrowLeft } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import PasswordInput from "../components/PasswordInput";
 import Logo from "../components/Logo";
+import { api } from "../lib/api";
 
 export default function Login() {
   const { login } = useAuth();
@@ -12,6 +13,11 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [registrationEnabled, setRegistrationEnabled] = useState(true);
+
+  useEffect(() => {
+    api.getPublicRegistrationEnabled().then((r) => setRegistrationEnabled(r.enabled)).catch(() => {});
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -82,12 +88,14 @@ export default function Login() {
             {loading ? "Signing in..." : "Sign In"}
           </button>
 
-          <p className="text-center text-sm text-body">
-            Don't have an account?{" "}
-            <Link to="/register" className="text-brand-orange font-medium hover:underline">
-              Register
-            </Link>
-          </p>
+          {registrationEnabled && (
+            <p className="text-center text-sm text-body">
+              Don't have an account?{" "}
+              <Link to="/register" className="text-brand-orange font-medium hover:underline">
+                Register
+              </Link>
+            </p>
+          )}
         </form>
       </div>
     </div>

@@ -32,7 +32,6 @@ class Asset(Base):
     tag_id: Mapped[str] = mapped_column(String(20), unique=True, nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    photo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     category_id: Mapped[int] = mapped_column(Integer, ForeignKey("asset_categories.id"), nullable=False)
     serial_code: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="in_storage")
@@ -51,6 +50,19 @@ class Asset(Base):
     notes: Mapped[list["AssetNote"]] = relationship(
         "AssetNote", back_populates="asset", cascade="all, delete-orphan", order_by="AssetNote.created_at.desc()"
     )
+    photos: Mapped[list["AssetPhoto"]] = relationship(
+        "AssetPhoto", cascade="all, delete-orphan", order_by="AssetPhoto.order"
+    )
+
+
+class AssetPhoto(Base):
+    __tablename__ = "asset_photos"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    asset_id: Mapped[int] = mapped_column(Integer, ForeignKey("assets.id"), nullable=False)
+    url: Mapped[str] = mapped_column(String(500), nullable=False)
+    order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    created_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, default=datetime.utcnow)
 
 
 class AssetNote(Base):
@@ -79,7 +91,6 @@ class AssetSubmission(Base):
     returned_by_department_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("departments.id"), nullable=True)
     proposed_status: Mapped[str] = mapped_column(String(30), nullable=False)
     detail: Mapped[str | None] = mapped_column(Text, nullable=True)
-    photo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     submitted_by: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
     final_status: Mapped[str | None] = mapped_column(String(30), nullable=True)
@@ -92,6 +103,19 @@ class AssetSubmission(Base):
     returned_by_department: Mapped[Department | None] = relationship("Department", foreign_keys=[returned_by_department_id])
     submitter: Mapped[User] = relationship("User", foreign_keys=[submitted_by])
     reviewer: Mapped[User | None] = relationship("User", foreign_keys=[reviewed_by])
+    photos: Mapped[list["SubmissionPhoto"]] = relationship(
+        "SubmissionPhoto", cascade="all, delete-orphan", order_by="SubmissionPhoto.order"
+    )
+
+
+class SubmissionPhoto(Base):
+    __tablename__ = "submission_photos"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    submission_id: Mapped[int] = mapped_column(Integer, ForeignKey("asset_submissions.id"), nullable=False)
+    url: Mapped[str] = mapped_column(String(500), nullable=False)
+    order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    created_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, default=datetime.utcnow)
 
 
 def require_asset_access(user: User = Depends(require_module_access("asset-tagging"))) -> User:
@@ -143,7 +167,7 @@ class AssetNoteRead(BaseModel):
 class AssetCreate(BaseModel):
     name: str
     description: str | None = None
-    photo_url: str | None = None
+    photo_urls: list[str] = []
     category_id: int
     serial_code: str
     status: str = "in_storage"
@@ -153,7 +177,7 @@ class AssetCreate(BaseModel):
 class AssetUpdate(BaseModel):
     name: str | None = None
     description: str | None = None
-    photo_url: str | None = None
+    photo_urls: list[str] | None = None
     category_id: int | None = None
     serial_code: str | None = None
     status: str | None = None
@@ -171,7 +195,7 @@ class AssetRead(BaseModel):
     tag_id: str
     name: str
     description: str | None
-    photo_url: str | None
+    photos: list[str]
     category_id: int
     category_name: str
     serial_code: str
@@ -192,7 +216,7 @@ class AssetDetailRead(AssetRead):
 class SubmissionCreate(BaseModel):
     proposed_status: str
     detail: str | None = None
-    photo_url: str | None = None
+    photo_urls: list[str] = []
 
 
 class SubmissionReview(BaseModel):
@@ -208,7 +232,7 @@ class SubmissionRead(BaseModel):
     returned_by_department_name: str | None
     proposed_status: str
     detail: str | None
-    photo_url: str | None
+    photos: list[str]
     submitted_by_name: str
     status: str
     final_status: str | None
@@ -230,7 +254,7 @@ def _serialize_asset(asset: Asset) -> AssetRead:
         tag_id=asset.tag_id,
         name=asset.name,
         description=asset.description,
-        photo_url=asset.photo_url,
+        photos=[p.url for p in asset.photos],
         category_id=asset.category_id,
         category_name=asset.category.name,
         serial_code=asset.serial_code,
@@ -267,7 +291,7 @@ def _serialize_submission(s: AssetSubmission) -> SubmissionRead:
         returned_by_department_name=s.returned_by_department.name if s.returned_by_department else None,
         proposed_status=s.proposed_status,
         detail=s.detail,
-        photo_url=s.photo_url,
+        photos=[p.url for p in s.photos],
         submitted_by_name=s.submitter.name,
         status=s.status,
         final_status=s.final_status,
@@ -408,6 +432,8 @@ def create_asset(
 ):
     if payload.status not in VALID_STATUSES:
         raise HTTPException(status_code=400, detail="Invalid status")
+    if payload.status == "in_use":
+        raise HTTPException(status_code=400, detail="A new asset can't be created as In Use, assign it to a person or department instead.")
     category = db.query(AssetCategory).filter(AssetCategory.id == payload.category_id).first()
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")
@@ -417,7 +443,6 @@ def create_asset(
         tag_id="",
         name=payload.name,
         description=payload.description,
-        photo_url=payload.photo_url,
         category_id=payload.category_id,
         serial_code=payload.serial_code,
         status=payload.status,
@@ -427,6 +452,8 @@ def create_asset(
     db.add(asset)
     db.flush()
     asset.tag_id = f"AST-{asset.id:06d}"
+    for i, url in enumerate(payload.photo_urls):
+        db.add(AssetPhoto(asset_id=asset.id, url=url, order=i))
     log_module_action(db, "asset-tagging", asset.name, "asset_created", current_user.id, target_id=asset.id)
     db.commit()
     db.refresh(asset)
@@ -455,12 +482,22 @@ def update_asset(
 
     if "status" in update_data and update_data["status"] not in VALID_STATUSES:
         raise HTTPException(status_code=400, detail="Invalid status")
+    if "status" in update_data and update_data["status"] == "in_use":
+        raise HTTPException(status_code=400, detail="Setting status to In Use directly isn't allowed, assign this asset to a person or department instead.")
+    if "status" in update_data and asset.status == "in_use":
+        raise HTTPException(status_code=400, detail="This asset is currently in use. Report a return through Submissions before changing its status.")
     if "category_id" in update_data:
         category = db.query(AssetCategory).filter(AssetCategory.id == update_data["category_id"]).first()
         if not category:
             raise HTTPException(status_code=404, detail="Category not found")
     if "serial_code" in update_data:
         _check_serial_unique(db, update_data["serial_code"], exclude_id=asset.id)
+
+    photo_urls = update_data.pop("photo_urls", None)
+    if photo_urls is not None:
+        db.query(AssetPhoto).filter(AssetPhoto.asset_id == asset.id).delete()
+        for i, url in enumerate(photo_urls):
+            db.add(AssetPhoto(asset_id=asset.id, url=url, order=i))
 
     for field, value in update_data.items():
         setattr(asset, field, value)
@@ -489,6 +526,9 @@ def assign_asset(
         )
     if asset.status == "disposed":
         raise HTTPException(status_code=400, detail="This asset has been disposed and can no longer be assigned.")
+
+    if payload.assigned_person_id is None and payload.assigned_department_id is None:
+        raise HTTPException(status_code=400, detail="Pick a person, a department, or both, at least one is required")
 
     is_assigning = payload.assigned_person_id is not None or payload.assigned_department_id is not None
 
@@ -602,11 +642,13 @@ def create_submission(
         returned_by_department_id=asset.assigned_department_id,
         proposed_status=payload.proposed_status,
         detail=payload.detail,
-        photo_url=payload.photo_url,
         submitted_by=current_user.id,
         status="pending",
     )
     db.add(submission)
+    db.flush()
+    for i, url in enumerate(payload.photo_urls):
+        db.add(SubmissionPhoto(submission_id=submission.id, url=url, order=i))
 
     asset.assigned_person_id = None
     asset.assigned_department_id = None

@@ -13,3 +13,5 @@ export const STATUS_OPTIONS = [
   { value: "disposed", label: "Disposed" },
   { value: "to_be_announced", label: "To Be Announced" },
 ];
+
+export const DIRECT_STATUS_OPTIONS = STATUS_OPTIONS.filter((s) => s.value !== "in_use");

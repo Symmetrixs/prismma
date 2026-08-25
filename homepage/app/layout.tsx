@@ -3,6 +3,8 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import GlobalBackground from "@/components/GlobalBackground";
 import CookieConsent from "@/components/CookieConsent";
+import MaintenancePage from "@/components/MaintenancePage";
+import { getPublicNav, getPublicSiteInfo, getPublicLinks, getMaintenanceStatus } from "@/lib/site-settings";
 import "./globals.css";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://prismma.net";
@@ -40,31 +42,45 @@ export const metadata: Metadata = {
   },
 };
 
-const organizationJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "Organization",
-  name: "Prismma Express Sdn Bhd",
-  legalName: "Prismma Express Sdn Bhd (967851-D)",
-  url: SITE_URL,
-  logo: `${SITE_URL}/assets/logos/prismma_main_logo.png`,
-  address: {
-    "@type": "PostalAddress",
-    streetAddress: "NO. 736, Lorong Perindustrian Bukit Minyak 11, Kawasan Bukit Minyak",
-    addressLocality: "Simpang Ampat",
-    addressRegion: "Pulau Pinang",
-    postalCode: "14100",
-    addressCountry: "MY",
-  },
-  contactPoint: {
-    "@type": "ContactPoint",
-    telephone: "+6-010-660-6600",
-    contactType: "customer service",
-    email: "enquiry@prismma.net",
-  },
-  sameAs: ["https://www.facebook.com/profile.php?id=61552278613121"],
-};
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const [maintenance, nav, siteInfo, socialLinks, footerLinks] = await Promise.all([
+    getMaintenanceStatus(),
+    getPublicNav(),
+    getPublicSiteInfo(),
+    getPublicLinks("social"),
+    getPublicLinks("footer"),
+  ]);
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const organizationJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: siteInfo.company_name || "Prismma Express Sdn Bhd",
+    legalName: "Prismma Express Sdn Bhd (967851-D)",
+    url: SITE_URL,
+    logo: `${SITE_URL}/assets/logos/prismma_main_logo.png`,
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: siteInfo.address || "NO. 736, Lorong Perindustrian Bukit Minyak 11, Kawasan Bukit Minyak, Simpang Ampat, Pulau Pinang, 14100",
+    },
+    contactPoint: {
+      "@type": "ContactPoint",
+      telephone: siteInfo.phone || "+6-010-660-6600",
+      contactType: "customer service",
+      email: siteInfo.email || "enquiry@prismma.net",
+    },
+    sameAs: socialLinks.map((l) => l.url),
+  };
+
+  if (maintenance.enabled) {
+    return (
+      <html lang="en">
+        <body>
+          <MaintenancePage message={maintenance.message} />
+        </body>
+      </html>
+    );
+  }
+
   return (
     <html lang="en">
       <head>
@@ -75,9 +91,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="flex min-h-screen flex-col">
         <GlobalBackground />
-        <Navbar />
+        <Navbar nav={nav} />
         <main className="flex-1">{children}</main>
-        <Footer />
+        <Footer nav={nav} siteInfo={siteInfo} socialLinks={socialLinks} footerLinks={footerLinks} />
         <CookieConsent />
       </body>
     </html>

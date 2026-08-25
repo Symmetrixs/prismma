@@ -31,7 +31,7 @@ export default async function NewsArticlePage({
 
           {article.media.length > 0 && (
             <ScrollReveal delay={0.1}>
-              <NewsMedia media={article.media} className="w-full h-[420px] rounded-xl mt-10" />
+              <NewsMedia media={article.media} className="w-full h-[420px] rounded-xl mt-10" fit="contain-blur" />
             </ScrollReveal>
           )}
 

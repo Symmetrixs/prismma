@@ -42,6 +42,10 @@ services:
         sync: false
       - key: HR_EMAIL
         sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
 
   - type: web
     name: prismma-homepage
@@ -54,6 +58,8 @@ services:
         sync: false
       - key: NEXT_PUBLIC_SYSTEM_URL
         sync: false
+      - key: NEXT_PUBLIC_SITE_URL
+        sync: false
       - key: API_URL
         sync: false
 
@@ -64,4 +70,6 @@ services:
     staticPublishPath: ./system/dist
     envVars:
       - key: VITE_API_URL
+        sync: false
+      - key: VITE_HOMEPAGE_URL
         sync: false

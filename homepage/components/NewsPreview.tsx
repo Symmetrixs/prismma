@@ -33,7 +33,7 @@ export default async function NewsPreview() {
                   className="block rounded-xl overflow-hidden border border-black/5 shadow-sm hover:shadow-lg transition-shadow"
                 >
                   <div className="relative h-48 bg-gray-100">
-                    <NewsMedia media={article.media} className="w-full h-full" />
+                    <NewsMedia media={article.media} className="w-full h-full" fit="contain-blur" />
                   </div>
                   <div className="p-6">
                     <span className="text-xs uppercase tracking-wide text-brand-orange font-medium">

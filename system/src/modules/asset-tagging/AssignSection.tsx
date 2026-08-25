@@ -5,7 +5,7 @@ import { useToast } from "../../context/ToastContext";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import EmptyState from "../../components/EmptyState";
 import SearchableSelect from "./SearchableSelect";
-import { STATUS_META, STATUS_OPTIONS } from "./statusMeta";
+import { STATUS_META } from "./statusMeta";
 
 type SortKey = "name" | "category_name" | "status";
 type FilterKey = "" | "unassigned" | "assigned";
@@ -22,7 +22,6 @@ export default function AssignSection() {
   const [openRowId, setOpenRowId] = useState<number | null>(null);
   const [draftPerson, setDraftPerson] = useState("");
   const [draftDept, setDraftDept] = useState("");
-  const [draftStatus, setDraftStatus] = useState("");
   const [saving, setSaving] = useState(false);
   const toast = useToast();
 
@@ -51,16 +50,18 @@ export default function AssignSection() {
     setOpenRowId(a.id);
     setDraftPerson(a.assigned_person_id ? String(a.assigned_person_id) : "");
     setDraftDept(a.assigned_department_id ? String(a.assigned_department_id) : "");
-    setDraftStatus(a.status);
   }
 
   async function saveAssign(assetId: number) {
+    if (!draftPerson && !draftDept) {
+      toast.error("Pick a person, a department, or both, at least one is required");
+      return;
+    }
     setSaving(true);
     try {
       await api.assignAsset(assetId, {
         assigned_person_id: draftPerson ? Number(draftPerson) : null,
         assigned_department_id: draftDept ? Number(draftDept) : null,
-        status: draftStatus,
       });
       toast.success("Assignment updated");
       setOpenRowId(null);
@@ -185,19 +186,13 @@ export default function AssignSection() {
                             </div>
                             <SearchableSelect
                               value={draftPerson}
-                              onChange={(v) => {
-                                setDraftPerson(v);
-                                if (v) setDraftStatus("in_use");
-                              }}
+                              onChange={setDraftPerson}
                               options={userOptions}
                               placeholder="Not assigned to a person"
                             />
                             <select
                               value={draftDept}
-                              onChange={(e) => {
-                                setDraftDept(e.target.value);
-                                if (e.target.value) setDraftStatus("in_use");
-                              }}
+                              onChange={(e) => setDraftDept(e.target.value)}
                               className="w-full rounded-md border border-border/10 px-3 py-2 text-sm bg-surface text-body"
                             >
                               <option value="">Not part of a department pool</option>
@@ -205,18 +200,9 @@ export default function AssignSection() {
                                 <option key={d.id} value={d.id}>{d.name}</option>
                               ))}
                             </select>
-                            <select
-                              value={draftStatus}
-                              onChange={(e) => setDraftStatus(e.target.value)}
-                              className="w-full rounded-md border border-border/10 px-3 py-2 text-sm bg-surface text-body"
-                            >
-                              {STATUS_OPTIONS.map((s) => (
-                                <option key={s.value} value={s.value}>{s.label}</option>
-                              ))}
-                            </select>
                             <button
                               onClick={() => saveAssign(a.id)}
-                              disabled={saving}
+                              disabled={saving || (!draftPerson && !draftDept)}
                               className="w-full text-sm font-medium text-white bg-brand-orange px-3 py-2 rounded-md hover:opacity-90 disabled:opacity-60"
                             >
                               {saving ? "Saving..." : "Save"}

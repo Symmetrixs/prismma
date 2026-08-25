@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { UserCheck, ShieldCheck, Users, Building2, LayoutGrid, KeyRound, BarChart3, History as HistoryIcon } from "lucide-react";
+import { UserCheck, ShieldCheck, Users, Building2, KeyRound, BarChart3, History as HistoryIcon } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../lib/api";
 import DashboardLayout from "../../components/DashboardLayout";
@@ -7,7 +7,6 @@ import RegistrationsTab from "./RegistrationsTab";
 import ModuleRequestsTab from "./ModuleRequestsTab";
 import UsersTab from "./UsersTab";
 import DepartmentsTab from "./DepartmentsTab";
-import ModulesTab from "./ModulesTab";
 import PasswordResetsTab from "./PasswordResetsTab";
 import AnalyticsTab from "./AnalyticsTab";
 import HistoryTab from "./HistoryTab";
@@ -18,7 +17,6 @@ type Tab =
   | "users"
   | "analytics"
   | "departments"
-  | "modules"
   | "password-resets"
   | "history";
 
@@ -30,7 +28,6 @@ const TAB_DEFS: { key: Tab; label: string; icon: typeof UserCheck; superadminOnl
   { key: "users", label: "Users", icon: Users },
   { key: "analytics", label: "Analytics", icon: BarChart3 },
   { key: "departments", label: "Departments", icon: Building2, superadminOnly: true },
-  { key: "modules", label: "Modules", icon: LayoutGrid, superadminOnly: true },
   { key: "password-resets", label: "Password Resets", icon: KeyRound },
   { key: "history", label: "History", icon: HistoryIcon, superadminOnly: true },
 ];
@@ -109,7 +106,6 @@ export default function AdminOperations() {
       {tab === "users" && <UsersTab isSuperadmin={isSuperadmin} />}
       {tab === "analytics" && <AnalyticsTab isSuperadmin={isSuperadmin} />}
       {tab === "departments" && isSuperadmin && <DepartmentsTab />}
-      {tab === "modules" && isSuperadmin && <ModulesTab />}
       {tab === "password-resets" && <PasswordResetsTab />}
       {tab === "history" && isSuperadmin && <HistoryTab />}
     </DashboardLayout>

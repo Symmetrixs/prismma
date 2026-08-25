@@ -1,16 +1,67 @@
 import { useState, useEffect } from "react";
-import { ClipboardList, Plus, X, Camera } from "lucide-react";
+import { ClipboardList, Plus, X } from "lucide-react";
 import { api } from "../../lib/api";
 import { useToast } from "../../context/ToastContext";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import EmptyState from "../../components/EmptyState";
+import Lightbox from "../../components/Lightbox";
+import SearchableSelect from "./SearchableSelect";
+import PhotoManager from "./PhotoManager";
 import { STATUS_META, STATUS_OPTIONS } from "./statusMeta";
+
+function SubmissionCard({ s, onPhotoClick }: { s: any; onPhotoClick: (url: string) => void }) {
+  const proposedInfo = STATUS_META[s.proposed_status];
+  return (
+    <div className="bg-surface rounded-xl border border-border/10 p-4">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <p className="font-medium text-heading">{s.asset_name} <span className="text-muted text-xs font-normal">{s.asset_tag_id}</span></p>
+          <p className="text-xs text-muted mt-0.5">
+            Returned by {s.returned_by_person_name || s.returned_by_department_name || "Unknown"} · Submitted by {s.submitted_by_name} · {new Date(s.created_at).toLocaleString()}
+          </p>
+        </div>
+        {s.status === "pending" ? (
+          <span className="text-xs px-2 py-1 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+            Pending review
+          </span>
+        ) : (
+          <span className={`text-xs px-2 py-1 rounded-full ${STATUS_META[s.final_status]?.className ?? ""}`}>
+            Finalized: {STATUS_META[s.final_status]?.label ?? s.final_status}
+          </span>
+        )}
+      </div>
+      <p className="text-sm text-body mt-2">
+        Proposed: <span className={`text-xs px-1.5 py-0.5 rounded ${proposedInfo?.className ?? ""}`}>{proposedInfo?.label ?? s.proposed_status}</span>
+      </p>
+      {s.detail && <p className="text-sm text-body mt-1">{s.detail}</p>}
+      {s.photos?.length > 0 && (
+        <div className="flex flex-wrap gap-2 mt-2">
+          {s.photos.map((url: string, i: number) => (
+            <img
+              key={i}
+              src={url}
+              alt=""
+              onClick={() => onPhotoClick(url)}
+              className="w-16 h-16 rounded-md object-cover cursor-pointer"
+            />
+          ))}
+        </div>
+      )}
+      {s.status === "reviewed" && (
+        <p className="text-xs text-muted mt-2">
+          Reviewed by {s.reviewed_by_name} · {new Date(s.reviewed_at).toLocaleString()}
+        </p>
+      )}
+    </div>
+  );
+}
 
 export default function SubmissionsSection() {
   const [submissions, setSubmissions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<"" | "pending" | "reviewed">("");
+  const [filter, setFilter] = useState<"" | "reviewed">("");
   const [showCreate, setShowCreate] = useState(false);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
@@ -39,7 +90,7 @@ export default function SubmissionsSection() {
       </div>
 
       <div className="flex items-center gap-2 my-5">
-        {(["", "pending", "reviewed"] as const).map((f) => (
+        {(["", "reviewed"] as const).map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
@@ -47,7 +98,7 @@ export default function SubmissionsSection() {
               filter === f ? "bg-brand-orange text-white" : "text-body hover:bg-surface-alt"
             }`}
           >
-            {f === "" ? "All" : f === "pending" ? "Pending" : "Reviewed"}
+            {f === "" ? "All" : "Reviewed"}
           </button>
         ))}
       </div>
@@ -58,40 +109,9 @@ export default function SubmissionsSection() {
         <EmptyState icon={ClipboardList} message="No submissions yet" />
       ) : (
         <div className="space-y-2">
-          {submissions.map((s) => {
-            const proposedInfo = STATUS_META[s.proposed_status];
-            return (
-              <div key={s.id} className="bg-surface rounded-xl border border-border/10 p-4">
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <div>
-                    <p className="font-medium text-heading">{s.asset_name} <span className="text-muted text-xs font-normal">{s.asset_tag_id}</span></p>
-                    <p className="text-xs text-muted mt-0.5">
-                      Returned by {s.returned_by_person_name || s.returned_by_department_name || "Unknown"} · Submitted by {s.submitted_by_name} · {new Date(s.created_at).toLocaleString()}
-                    </p>
-                  </div>
-                  {s.status === "pending" ? (
-                    <span className="text-xs px-2 py-1 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-                      Pending review
-                    </span>
-                  ) : (
-                    <span className={`text-xs px-2 py-1 rounded-full ${STATUS_META[s.final_status]?.className ?? ""}`}>
-                      Finalized: {STATUS_META[s.final_status]?.label ?? s.final_status}
-                    </span>
-                  )}
-                </div>
-                <p className="text-sm text-body mt-2">
-                  Proposed: <span className={`text-xs px-1.5 py-0.5 rounded ${proposedInfo?.className ?? ""}`}>{proposedInfo?.label ?? s.proposed_status}</span>
-                </p>
-                {s.detail && <p className="text-sm text-body mt-1">{s.detail}</p>}
-                {s.photo_url && <img src={s.photo_url} alt="" className="mt-2 rounded-md max-h-32 object-cover" />}
-                {s.status === "reviewed" && (
-                  <p className="text-xs text-muted mt-2">
-                    Reviewed by {s.reviewed_by_name} · {new Date(s.reviewed_at).toLocaleString()}
-                  </p>
-                )}
-              </div>
-            );
-          })}
+          {submissions.map((s) => (
+            <SubmissionCard key={s.id} s={s} onPhotoClick={setLightboxSrc} />
+          ))}
         </div>
       )}
 
@@ -104,6 +124,8 @@ export default function SubmissionsSection() {
           }}
         />
       )}
+
+      {lightboxSrc && <Lightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
     </div>
   );
 }
@@ -113,8 +135,7 @@ function CreateSubmissionForm({ onClose, onCreated }: { onClose: () => void; onC
   const [assetId, setAssetId] = useState("");
   const [proposedStatus, setProposedStatus] = useState("under_repair");
   const [detail, setDetail] = useState("");
-  const [photoUrl, setPhotoUrl] = useState("");
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photos, setPhotos] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const toast = useToast();
@@ -126,21 +147,6 @@ function CreateSubmissionForm({ onClose, onCreated }: { onClose: () => void; onC
     });
   }, []);
 
-  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploadingPhoto(true);
-    try {
-      const { url } = await api.uploadAssetPhoto(file);
-      setPhotoUrl(url);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Photo upload failed");
-    } finally {
-      setUploadingPhoto(false);
-      e.target.value = "";
-    }
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!assetId) return;
@@ -150,7 +156,7 @@ function CreateSubmissionForm({ onClose, onCreated }: { onClose: () => void; onC
       await api.createSubmission(Number(assetId), {
         proposed_status: proposedStatus,
         detail: detail || undefined,
-        photo_url: photoUrl || undefined,
+        photo_urls: photos,
       });
       toast.success("Submission created, waiting on superadmin review");
       onCreated();
@@ -176,19 +182,16 @@ function CreateSubmissionForm({ onClose, onCreated }: { onClose: () => void; onC
             <p className="text-sm text-muted">No assets are currently in use, so there's nothing to report a return for right now.</p>
           ) : (
             <>
-              <select
-                required
+              <SearchableSelect
                 value={assetId}
-                onChange={(e) => setAssetId(e.target.value)}
-                className="w-full rounded-md border border-border/10 px-3 py-2.5 text-sm bg-surface text-body"
-              >
-                <option value="" disabled>Select the asset being returned</option>
-                {assets.map((a: any) => (
-                  <option key={a.id} value={a.id}>
-                    {a.name} ({a.tag_id}), with {a.assigned_person_name || a.assigned_department_name}
-                  </option>
-                ))}
-              </select>
+                onChange={setAssetId}
+                options={assets.map((a: any) => ({
+                  id: a.id,
+                  label: `${a.name} (${a.tag_id})`,
+                  sublabel: `with ${a.assigned_person_name || a.assigned_department_name}`,
+                }))}
+                placeholder="Select the asset being returned"
+              />
               <select
                 value={proposedStatus}
                 onChange={(e) => setProposedStatus(e.target.value)}
@@ -205,17 +208,7 @@ function CreateSubmissionForm({ onClose, onCreated }: { onClose: () => void; onC
                 rows={2}
                 className="w-full rounded-md border border-border/10 px-3 py-2.5 text-sm bg-surface text-body resize-y"
               />
-              <div className="flex items-center gap-3">
-                {photoUrl ? (
-                  <img src={photoUrl} alt="" className="w-12 h-12 rounded-md object-cover" />
-                ) : (
-                  <div className="w-12 h-12 rounded-md bg-surface-alt" />
-                )}
-                <label className="flex items-center gap-1.5 text-xs text-body border border-border/10 rounded-md px-3 py-1.5 hover:bg-surface-alt cursor-pointer">
-                  <Camera size={12} /> {uploadingPhoto ? "Uploading..." : "Add Photo (optional)"}
-                  <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePhotoUpload} className="hidden" />
-                </label>
-              </div>
+              <PhotoManager photos={photos} onChange={setPhotos} />
 
               {error && <p className="text-sm text-red-600">{error}</p>}
 

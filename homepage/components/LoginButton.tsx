@@ -12,7 +12,7 @@ export default function LoginButton({
   label = "Employee Login",
 }: LoginButtonProps) {
   const systemUrl =
-    process.env.NEXT_PUBLIC_SYSTEM_URL || "http://localhost:5173";
+    process.env.NEXT_PUBLIC_SYSTEM_URL || "http://localhost:8080";
   const isLarge = size === "large";
 
   return (

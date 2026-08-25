@@ -1,8 +1,28 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Facebook, Instagram, Linkedin, Youtube, MapPin, Phone, Mail } from "lucide-react";
+import { Facebook, Instagram, Linkedin, Youtube, Twitter, Link2, MapPin, Phone, Mail } from "lucide-react";
+import type { NavPage, SiteInfo, SiteLink } from "@/lib/site-settings";
 
-export default function Footer() {
+function socialIcon(label: string) {
+  const l = label.toLowerCase();
+  if (l.includes("facebook")) return Facebook;
+  if (l.includes("instagram")) return Instagram;
+  if (l.includes("linkedin")) return Linkedin;
+  if (l.includes("youtube")) return Youtube;
+  if (l.includes("twitter") || l.includes("x.com") || l === "x") return Twitter;
+  return Link2;
+}
+
+interface FooterProps {
+  nav: NavPage[];
+  siteInfo: SiteInfo;
+  socialLinks: SiteLink[];
+  footerLinks: SiteLink[];
+}
+
+export default function Footer({ nav, siteInfo, socialLinks, footerLinks }: FooterProps) {
+  const companyLinks = nav.map((p) => ({ href: `/${p.slug}`, label: p.label }));
+
   return (
     <footer className="relative bg-gradient-to-br from-[#1a1a8c] via-brand-navy to-black text-white overflow-hidden">
       <div className="mx-auto max-w-7xl px-6 py-16 grid grid-cols-1 md:grid-cols-4 gap-10">
@@ -16,33 +36,30 @@ export default function Footer() {
           <p className="mt-5 text-sm text-white/60 max-w-xs">
             Reliable, cost-effective logistics solutions across air, sea, and land.
           </p>
-          <div className="flex gap-5 mt-6">
-            <a href="https://www.facebook.com/profile.php?id=61552278613121" aria-label="Facebook" className="hover:text-brand-orange transition-colors">
-              <Facebook size={22} />
-            </a>
-            <a href="#" aria-label="Instagram" className="hover:text-brand-orange transition-colors">
-              <Instagram size={22} />
-            </a>
-            <a href="#" aria-label="LinkedIn" className="hover:text-brand-orange transition-colors">
-              <Linkedin size={22} />
-            </a>
-            <a href="#" aria-label="YouTube" className="hover:text-brand-orange transition-colors">
-              <Youtube size={22} />
-            </a>
-          </div>
+          {socialLinks.length > 0 && (
+            <div className="flex gap-5 mt-6">
+              {socialLinks.map((l) => {
+                const Icon = socialIcon(l.label);
+                return (
+                  <a key={l.id} href={l.url} aria-label={l.label} className="hover:text-brand-orange transition-colors">
+                    <Icon size={22} />
+                  </a>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <div>
           <h4 className="font-display font-semibold text-lg mb-4">Company</h4>
           <ul className="space-y-2 text-white/70">
             <li><Link href="/" className="hover:text-white transition-colors">Home</Link></li>
-            <li><Link href="/about" className="hover:text-white transition-colors">About</Link></li>
-            <li><Link href="/our-partners" className="hover:text-white transition-colors">Our Partners</Link></li>
-            <li><Link href="/get-a-quote" className="hover:text-white transition-colors">Get a Quote</Link></li>
-            <li><Link href="/track-shipment" className="hover:text-white transition-colors">Track Shipment</Link></li>
-            <li><Link href="/latest-news" className="hover:text-white transition-colors">Latest News</Link></li>
-            <li><Link href="/careers" className="hover:text-white transition-colors">Careers</Link></li>
-            <li><Link href="/contact" className="hover:text-white transition-colors">Contact</Link></li>
+            {companyLinks.map((l) => (
+              <li key={l.href}><Link href={l.href} className="hover:text-white transition-colors">{l.label}</Link></li>
+            ))}
+            {footerLinks.map((l) => (
+              <li key={l.id}><a href={l.url} className="hover:text-white transition-colors">{l.label}</a></li>
+            ))}
           </ul>
         </div>
 
@@ -60,28 +77,30 @@ export default function Footer() {
         <div>
           <h4 className="font-display font-semibold text-lg mb-4">Contact</h4>
           <ul className="space-y-3 text-white/70">
-            <li className="flex items-start gap-2">
-              <MapPin size={18} className="mt-0.5 shrink-0" />
-              <span>NO. 736, Lorong Perindustrian Bukit Minyak 11, Kawasan Bukit Minyak, 14100 Simpang Ampat, Pulau Pinang, MALAYSIA.</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <Phone size={18} className="mt-0.5 shrink-0" />
-              <span>
-                +6 010 660 6600
-                <br />
-                +6 016 850 4340
-              </span>
-            </li>
-            <li className="flex items-center gap-2">
-              <Mail size={18} className="shrink-0" />
-              <span>enquiry@prismma.net</span>
-            </li>
+            {siteInfo.address && (
+              <li className="flex items-start gap-2">
+                <MapPin size={18} className="mt-0.5 shrink-0" />
+                <span className="whitespace-pre-line">{siteInfo.address}</span>
+              </li>
+            )}
+            {siteInfo.phone && (
+              <li className="flex items-start gap-2">
+                <Phone size={18} className="mt-0.5 shrink-0" />
+                <span className="whitespace-pre-line">{siteInfo.phone}</span>
+              </li>
+            )}
+            {siteInfo.email && (
+              <li className="flex items-center gap-2">
+                <Mail size={18} className="shrink-0" />
+                <span>{siteInfo.email}</span>
+              </li>
+            )}
           </ul>
         </div>
       </div>
 
       <div className="relative border-t border-white/10 py-6 text-center text-sm text-white/50">
-        Copyright Prismma Express Sdn Bhd (967851-D). All Rights Reserved.
+        Copyright {siteInfo.company_name || "Prismma Express Sdn Bhd"} (967851-D). All Rights Reserved.
       </div>
     </footer>
   );

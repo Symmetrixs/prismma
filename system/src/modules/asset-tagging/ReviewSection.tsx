@@ -4,6 +4,7 @@ import { api } from "../../lib/api";
 import { useToast } from "../../context/ToastContext";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import EmptyState from "../../components/EmptyState";
+import Lightbox from "../../components/Lightbox";
 import { STATUS_META, STATUS_OPTIONS } from "./statusMeta";
 
 export default function ReviewSection() {
@@ -11,6 +12,7 @@ export default function ReviewSection() {
   const [loading, setLoading] = useState(true);
   const [finalStatusDrafts, setFinalStatusDrafts] = useState<Record<number, string>>({});
   const [reviewing, setReviewing] = useState<number | null>(null);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const toast = useToast();
 
   async function load() {
@@ -66,7 +68,19 @@ export default function ReviewSection() {
                   Proposed: <span className={`text-xs px-1.5 py-0.5 rounded ${proposedInfo?.className ?? ""}`}>{proposedInfo?.label ?? s.proposed_status}</span>
                 </p>
                 {s.detail && <p className="text-sm text-body mt-1 bg-surface-alt rounded-md px-3 py-2">{s.detail}</p>}
-                {s.photo_url && <img src={s.photo_url} alt="" className="mt-2 rounded-md max-h-40 object-cover" />}
+                {s.photos?.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {s.photos.map((url: string, i: number) => (
+                      <img
+                        key={i}
+                        src={url}
+                        alt=""
+                        onClick={() => setLightboxSrc(url)}
+                        className="w-16 h-16 rounded-md object-cover cursor-pointer"
+                      />
+                    ))}
+                  </div>
+                )}
 
                 <div className="flex items-center gap-2 mt-4">
                   <select
@@ -91,6 +105,8 @@ export default function ReviewSection() {
           })}
         </div>
       )}
+
+      {lightboxSrc && <Lightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
     </div>
   );
 }

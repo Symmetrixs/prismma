@@ -78,7 +78,15 @@ export default function AssetTagging() {
           <div className="max-w-2xl">
             <h1 className="font-display text-2xl font-semibold text-heading mb-1">Log</h1>
             <p className="text-body mb-6">Every action taken within Asset Tagging</p>
-            <ModuleLogViewer moduleSlug="asset-tagging" title="Asset Tagging Log" inline />
+            <ModuleLogViewer
+              moduleSlug="asset-tagging"
+              title="Asset Tagging Log"
+              inline
+              categoryGroups={[
+                { label: "Assets", matchPrefixes: ["asset_", "note_"] },
+                { label: "Submissions", matchPrefixes: ["submission_"] },
+              ]}
+            />
           </div>
         )}
       </main>

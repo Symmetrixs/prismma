@@ -9,6 +9,7 @@ from app.core.deps import get_current_user, require_admin
 from app.core.utils import validate_password_strength
 from app.core.rate_limit import limiter
 from app.models import User, PasswordResetRequest
+from app.site_settings import _get_setting
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -55,6 +56,9 @@ class PasswordResetRead(BaseModel):
 @router.post("/register")
 @limiter.limit("5/hour")
 def register(request: Request, payload: RegisterRequest, db: Session = Depends(get_db)):
+    if _get_setting(db, "system.registration_enabled", "true") != "true":
+        raise HTTPException(status_code=403, detail="New registrations are currently closed")
+
     password_error = validate_password_strength(payload.password)
     if password_error:
         raise HTTPException(status_code=400, detail=password_error)
@@ -116,16 +120,18 @@ def login(request: Request, payload: LoginRequest, response: Response, db: Sessi
     if not verify_password(payload.password, user.password_hash):
         user.failed_login_count += 1
 
-        if user.failed_login_count >= settings.LOGIN_MAX_ATTEMPTS:
+        max_attempts = int(_get_setting(db, "system.login_max_attempts", str(settings.LOGIN_MAX_ATTEMPTS)))
+        stage1_minutes = int(_get_setting(db, "system.lockout_stage1_minutes", str(settings.LOGIN_COOLDOWN_STAGE_1_MINUTES)))
+        stage2_minutes = int(_get_setting(db, "system.lockout_stage2_minutes", str(settings.LOGIN_COOLDOWN_STAGE_2_MINUTES)))
+
+        if user.failed_login_count >= max_attempts:
             user.failed_login_count = 0
             if user.lockout_stage == 0:
                 user.lockout_stage = 1
-                user.locked_until = datetime.utcnow(
-                ) + timedelta(minutes=settings.LOGIN_COOLDOWN_STAGE_1_MINUTES)
+                user.locked_until = datetime.utcnow() + timedelta(minutes=stage1_minutes)
             elif user.lockout_stage == 1:
                 user.lockout_stage = 2
-                user.locked_until = datetime.utcnow(
-                ) + timedelta(minutes=settings.LOGIN_COOLDOWN_STAGE_2_MINUTES)
+                user.locked_until = datetime.utcnow() + timedelta(minutes=stage2_minutes)
             else:
                 user.account_locked = True
 

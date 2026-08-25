@@ -1,8 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
-import { Search, Plus, Tag } from "lucide-react";
+import { Search, Plus, Tag, Download } from "lucide-react";
 import { api } from "../../lib/api";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import EmptyState from "../../components/EmptyState";
+import { downloadXlsx } from "../../lib/xlsx";
+import { useToast } from "../../context/ToastContext";
 import { STATUS_META, STATUS_OPTIONS } from "./statusMeta";
 import CategoriesPanel from "./CategoriesPanel";
 import CreateAssetForm from "./CreateAssetForm";
@@ -11,6 +13,7 @@ import AssetDetailPanel from "./AssetDetailPanel";
 type SortKey = "name" | "category_name" | "status" | "created_at";
 
 export default function ManageAssetsSection({ isAssetAdmin, isSuperadmin }: { isAssetAdmin: boolean; isSuperadmin: boolean }) {
+  const toast = useToast();
   const [assets, setAssets] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,6 +76,32 @@ export default function ManageAssetsSection({ isAssetAdmin, isSuperadmin }: { is
     { key: "created_at", label: "Added" },
   ];
 
+  async function exportCsv() {
+    const headers = ["Tag ID", "Name", "Category", "Serial Code", "Status", "Location", "Assigned Person", "Assigned Department", "Added"];
+    const csvRows = filtered.map((a) => [
+      a.tag_id,
+      a.name,
+      a.category_name,
+      a.serial_code,
+      STATUS_META[a.status]?.label ?? a.status,
+      a.location || "",
+      a.assigned_person_name || "",
+      a.assigned_department_name || "",
+      a.created_at ? new Date(a.created_at).toLocaleDateString() : "",
+    ]);
+    try {
+      await downloadXlsx({
+        filename: `assets-${new Date().toISOString().slice(0, 10)}.xlsx`,
+        headers,
+        rows: csvRows,
+        textColumns: [0, 3],
+        columnWidths: [14, 22, 14, 16, 16, 18, 18, 18, 12],
+      });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not export");
+    }
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between mb-1 flex-wrap gap-3">
@@ -81,6 +110,14 @@ export default function ManageAssetsSection({ isAssetAdmin, isSuperadmin }: { is
           <p className="text-body">{assets.length} asset{assets.length !== 1 ? "s" : ""} tracked</p>
         </div>
         <div className="flex items-center gap-2">
+          {isAssetAdmin && (
+            <button
+              onClick={exportCsv}
+              className="flex items-center gap-1.5 rounded-md border border-border/10 px-3 py-2 text-sm text-body hover:bg-surface-alt"
+            >
+              <Download size={14} /> Export CSV
+            </button>
+          )}
           {isAssetAdmin && (
             <button
               onClick={() => setShowCategories(true)}
@@ -164,8 +201,8 @@ export default function ManageAssetsSection({ isAssetAdmin, isSuperadmin }: { is
                         >
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2.5">
-                              {a.photo_url ? (
-                                <img src={a.photo_url} alt="" className="w-8 h-8 rounded object-cover shrink-0" />
+                              {a.photos?.[0] ? (
+                                <img src={a.photos[0]} alt="" className="w-8 h-8 rounded object-cover shrink-0" />
                               ) : (
                                 <div className="w-8 h-8 rounded bg-surface-alt shrink-0" />
                               )}

@@ -1,25 +1,38 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { api } from "../lib/api";
 
-const IDLE_LIMIT_MS = 20 * 60 * 1000;
-const WARNING_COUNTDOWN_S = 60;
+const DEFAULT_IDLE_LIMIT_MS = 20 * 60 * 1000;
+const DEFAULT_WARNING_COUNTDOWN_S = 60;
 
 export default function InactivityMonitor() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [warning, setWarning] = useState(false);
-  const [secondsLeft, setSecondsLeft] = useState(WARNING_COUNTDOWN_S);
+  const [idleLimitMs, setIdleLimitMs] = useState(DEFAULT_IDLE_LIMIT_MS);
+  const [warningCountdownS, setWarningCountdownS] = useState(DEFAULT_WARNING_COUNTDOWN_S);
+  const [secondsLeft, setSecondsLeft] = useState(DEFAULT_WARNING_COUNTDOWN_S);
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countdownTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    api.getSessionConfig()
+      .then((r) => {
+        setIdleLimitMs(r.inactivity_timeout_minutes * 60 * 1000);
+        setWarningCountdownS(r.inactivity_warning_seconds);
+      })
+      .catch(() => {});
+  }, [user]);
 
   const resetIdleTimer = useCallback(() => {
     if (idleTimer.current) clearTimeout(idleTimer.current);
     idleTimer.current = setTimeout(() => {
       setWarning(true);
-      setSecondsLeft(WARNING_COUNTDOWN_S);
-    }, IDLE_LIMIT_MS);
-  }, []);
+      setSecondsLeft(warningCountdownS);
+    }, idleLimitMs);
+  }, [idleLimitMs, warningCountdownS]);
 
   const handleLogout = useCallback(async () => {
     await logout();

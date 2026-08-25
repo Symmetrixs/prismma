@@ -117,6 +117,7 @@ export default function AnalyticsTab({ isSuperadmin }: { isSuperadmin: boolean }
               <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--color-border) / 0.1)" />
               <XAxis dataKey="name" tick={{ fontSize: 12, fill: "rgb(var(--color-body))" }} interval={0} angle={-20} textAnchor="end" height={60} />
               <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: "rgb(var(--color-body))" }} />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
               <Tooltip
                 contentStyle={{
                   backgroundColor: "rgb(var(--color-surface))",
@@ -125,7 +126,6 @@ export default function AnalyticsTab({ isSuperadmin }: { isSuperadmin: boolean }
                   fontSize: 13,
                 }}
               />
-              <Legend wrapperStyle={{ fontSize: 12 }} />
               <Bar dataKey="Active" fill="#16A34A" radius={[4, 4, 0, 0]} />
               <Bar dataKey="Pending" fill="#F59E0B" radius={[4, 4, 0, 0]} />
               {isSuperadmin && <Bar dataKey="Disabled" fill="#DC2626" radius={[4, 4, 0, 0]} />}

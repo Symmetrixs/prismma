@@ -1,11 +1,13 @@
-import { useState, useEffect, useRef } from "react";
-import { X, Pencil, Trash2, AlertTriangle, Camera, ArrowLeftRight } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, Pencil, Trash2, AlertTriangle } from "lucide-react";
 import { api } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
 import { useEscapeKey } from "../../lib/useEscapeKey";
 import ConfirmDialog from "../../components/ConfirmDialog";
-import { STATUS_META, STATUS_OPTIONS } from "./statusMeta";
+import Lightbox from "../../components/Lightbox";
+import PhotoManager from "./PhotoManager";
+import { STATUS_META, STATUS_OPTIONS, DIRECT_STATUS_OPTIONS } from "./statusMeta";
 
 interface Props {
   assetId: number;
@@ -21,12 +23,11 @@ type Tab = "overview" | "history" | "identity";
 export default function AssetDetailPanel({ assetId, isAssetAdmin, isSuperadmin, onClose, onChanged }: Props) {
   const { user } = useAuth();
   const toast = useToast();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const returnPhotoInputRef = useRef<HTMLInputElement>(null);
 
   const [asset, setAsset] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("overview");
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
   const [locationDraft, setLocationDraft] = useState("");
   const [savingLocation, setSavingLocation] = useState(false);
@@ -35,17 +36,9 @@ export default function AssetDetailPanel({ assetId, isAssetAdmin, isSuperadmin, 
   const [categories, setCategories] = useState<any[]>([]);
   const [identityError, setIdentityError] = useState<string | null>(null);
   const [savingIdentity, setSavingIdentity] = useState(false);
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const [history, setHistory] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
-
-  const [showReturnForm, setShowReturnForm] = useState(false);
-  const [returnStatus, setReturnStatus] = useState("under_repair");
-  const [returnDetail, setReturnDetail] = useState("");
-  const [returnPhoto, setReturnPhoto] = useState("");
-  const [uploadingReturnPhoto, setUploadingReturnPhoto] = useState(false);
-  const [submittingReturn, setSubmittingReturn] = useState(false);
 
   const [newNote, setNewNote] = useState("");
   const [addingNote, setAddingNote] = useState(false);
@@ -68,7 +61,8 @@ export default function AssetDetailPanel({ assetId, isAssetAdmin, isSuperadmin, 
       description: a.description || "",
       category_id: a.category_id,
       serial_code: a.serial_code,
-      photo_url: a.photo_url || "",
+      status: a.status,
+      photos: a.photos || [],
     });
     setLoading(false);
   }
@@ -109,9 +103,14 @@ export default function AssetDetailPanel({ assetId, isAssetAdmin, isSuperadmin, 
         name: identityForm.name,
         description: identityForm.description || null,
         category_id: Number(identityForm.category_id),
-        photo_url: identityForm.photo_url || null,
+        photo_urls: identityForm.photos,
       };
-      if (isSuperadmin) payload.serial_code = identityForm.serial_code;
+      if (isSuperadmin) {
+        payload.serial_code = identityForm.serial_code;
+        if (identityForm.status !== asset.status) {
+          payload.status = identityForm.status;
+        }
+      }
       await api.updateAsset(assetId, payload);
       toast.success("Details updated");
       load();
@@ -120,58 +119,6 @@ export default function AssetDetailPanel({ assetId, isAssetAdmin, isSuperadmin, 
       setIdentityError(err?.detail?.message || (err instanceof Error ? err.message : "Could not save changes"));
     } finally {
       setSavingIdentity(false);
-    }
-  }
-
-  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploadingPhoto(true);
-    try {
-      const { url } = await api.uploadAssetPhoto(file);
-      setIdentityForm((f: any) => ({ ...f, photo_url: url }));
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Photo upload failed");
-    } finally {
-      setUploadingPhoto(false);
-      e.target.value = "";
-    }
-  }
-
-  async function handleReturnPhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploadingReturnPhoto(true);
-    try {
-      const { url } = await api.uploadAssetPhoto(file);
-      setReturnPhoto(url);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Photo upload failed");
-    } finally {
-      setUploadingReturnPhoto(false);
-      e.target.value = "";
-    }
-  }
-
-  async function submitReturn(e: React.FormEvent) {
-    e.preventDefault();
-    setSubmittingReturn(true);
-    try {
-      await api.createSubmission(assetId, {
-        proposed_status: returnStatus,
-        detail: returnDetail || undefined,
-        photo_url: returnPhoto || undefined,
-      });
-      toast.success("Return submitted, waiting on superadmin review");
-      setShowReturnForm(false);
-      setReturnDetail("");
-      setReturnPhoto("");
-      load();
-      onChanged();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not submit return");
-    } finally {
-      setSubmittingReturn(false);
     }
   }
 
@@ -225,7 +172,6 @@ export default function AssetDetailPanel({ assetId, isAssetAdmin, isSuperadmin, 
   }
 
   const statusInfo = asset ? STATUS_META[asset.status] : null;
-  const isAssigned = asset && (asset.assigned_person_id || asset.assigned_department_id);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
@@ -242,8 +188,8 @@ export default function AssetDetailPanel({ assetId, isAssetAdmin, isSuperadmin, 
         ) : (
           <>
             <div className="px-6 pt-5 flex items-center gap-3">
-              {asset.photo_url ? (
-                <img src={asset.photo_url} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0" />
+              {asset.photos?.[0] ? (
+                <img src={asset.photos[0]} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0" />
               ) : (
                 <div className="w-12 h-12 rounded-lg bg-surface-alt shrink-0" />
               )}
@@ -275,6 +221,20 @@ export default function AssetDetailPanel({ assetId, isAssetAdmin, isSuperadmin, 
             <div className="p-6 space-y-6">
               {tab === "overview" && (
                 <>
+                  {asset.photos?.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {asset.photos.map((url: string, i: number) => (
+                        <img
+                          key={i}
+                          src={url}
+                          alt=""
+                          onClick={() => setLightboxSrc(url)}
+                          className="w-16 h-16 rounded-md object-cover cursor-pointer"
+                        />
+                      ))}
+                    </div>
+                  )}
+
                   {asset.description && (
                     <p className="text-sm text-body bg-surface-alt rounded-md px-3 py-2.5">{asset.description}</p>
                   )}
@@ -320,72 +280,6 @@ export default function AssetDetailPanel({ assetId, isAssetAdmin, isSuperadmin, 
                       <p className="text-heading text-sm">{asset.location || "—"}</p>
                     )}
                   </div>
-
-                  {isAssetAdmin && isAssigned && !showReturnForm && (
-                    <button
-                      onClick={() => setShowReturnForm(true)}
-                      className="flex items-center gap-1.5 text-sm text-brand-orange font-medium hover:underline"
-                    >
-                      <ArrowLeftRight size={14} /> Report a return
-                    </button>
-                  )}
-
-                  {showReturnForm && (
-                    <form onSubmit={submitReturn} className="rounded-lg border border-border/10 bg-surface-alt p-4 space-y-3">
-                      <p className="text-sm font-medium text-heading">Report a return</p>
-                      <select
-                        value={returnStatus}
-                        onChange={(e) => setReturnStatus(e.target.value)}
-                        className="w-full rounded-md border border-border/10 px-3 py-2 text-sm bg-surface text-body"
-                      >
-                        {STATUS_OPTIONS.map((s) => (
-                          <option key={s.value} value={s.value}>{s.label}</option>
-                        ))}
-                      </select>
-                      <textarea
-                        value={returnDetail}
-                        onChange={(e) => setReturnDetail(e.target.value)}
-                        placeholder="What condition did it come back in? (e.g. needs cleaning, screen cracked)"
-                        rows={2}
-                        className="w-full rounded-md border border-border/10 px-3 py-2 text-sm bg-surface text-body resize-y"
-                      />
-                      <div className="flex items-center gap-3">
-                        {returnPhoto ? (
-                          <img src={returnPhoto} alt="" className="w-12 h-12 rounded-md object-cover" />
-                        ) : (
-                          <div className="w-12 h-12 rounded-md bg-surface" />
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => returnPhotoInputRef.current?.click()}
-                          disabled={uploadingReturnPhoto}
-                          className="flex items-center gap-1.5 text-xs text-body border border-border/10 rounded-md px-3 py-1.5 hover:bg-surface disabled:opacity-50"
-                        >
-                          <Camera size={12} /> {uploadingReturnPhoto ? "Uploading..." : "Add Photo (optional)"}
-                        </button>
-                        <input
-                          ref={returnPhotoInputRef}
-                          type="file"
-                          accept="image/jpeg,image/png,image/webp"
-                          onChange={handleReturnPhotoUpload}
-                          className="hidden"
-                        />
-                      </div>
-                      <div className="flex justify-end gap-2">
-                        <button type="button" onClick={() => setShowReturnForm(false)} className="text-sm text-body px-3 py-2 rounded-md hover:bg-surface">
-                          Cancel
-                        </button>
-                        <button
-                          type="submit"
-                          disabled={submittingReturn}
-                          className="text-sm font-medium text-white bg-brand-orange px-4 py-2 rounded-md hover:opacity-90 disabled:opacity-60"
-                        >
-                          {submittingReturn ? "Submitting..." : "Submit"}
-                        </button>
-                      </div>
-                      <p className="text-xs text-muted">This goes to Review before the status actually changes.</p>
-                    </form>
-                  )}
 
                   <div className="border-t border-border/10 pt-4">
                     <p className="text-sm font-medium text-heading mb-3">Notes</p>
@@ -480,22 +374,7 @@ export default function AssetDetailPanel({ assetId, isAssetAdmin, isSuperadmin, 
 
               {tab === "identity" && isAssetAdmin && (
                 <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    {identityForm.photo_url ? (
-                      <img src={identityForm.photo_url} alt="" className="w-16 h-16 rounded-lg object-cover" />
-                    ) : (
-                      <div className="w-16 h-16 rounded-lg bg-surface-alt" />
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploadingPhoto}
-                      className="flex items-center gap-1.5 text-sm text-body border border-border/10 rounded-md px-3 py-2 hover:bg-surface-alt disabled:opacity-50"
-                    >
-                      <Camera size={14} /> {uploadingPhoto ? "Uploading..." : "Change Photo"}
-                    </button>
-                    <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePhotoUpload} className="hidden" />
-                  </div>
+                  <PhotoManager photos={identityForm.photos} onChange={(photos) => setIdentityForm({ ...identityForm, photos })} />
 
                   <input
                     value={identityForm.name}
@@ -519,6 +398,26 @@ export default function AssetDetailPanel({ assetId, isAssetAdmin, isSuperadmin, 
                       <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
                   </select>
+                  <div>
+                    <select
+                      value={identityForm.status}
+                      onChange={(e) => setIdentityForm({ ...identityForm, status: e.target.value })}
+                      disabled={!isSuperadmin || asset.status === "in_use"}
+                      className="w-full rounded-md border border-border/10 px-3 py-2.5 text-sm bg-surface text-body disabled:opacity-50"
+                    >
+                      {asset.status === "in_use" && (
+                        <option value="in_use">In Use</option>
+                      )}
+                      {DIRECT_STATUS_OPTIONS.map((s) => (
+                        <option key={s.value} value={s.value}>{s.label}</option>
+                      ))}
+                    </select>
+                    {!isSuperadmin ? (
+                      <p className="text-xs text-muted mt-1">Only a superadmin can change status directly here</p>
+                    ) : asset.status === "in_use" ? (
+                      <p className="text-xs text-muted mt-1">Currently in use, report a return through Submissions to change this</p>
+                    ) : null}
+                  </div>
                   <div>
                     <input
                       value={identityForm.serial_code}
@@ -560,6 +459,8 @@ export default function AssetDetailPanel({ assetId, isAssetAdmin, isSuperadmin, 
           onCancel={() => setPendingNoteAction(null)}
         />
       )}
+
+      {lightboxSrc && <Lightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
     </div>
   );
 }

@@ -233,4 +233,19 @@ export const api = {
   deleteAssetNote: (noteId: number) => request(`/assets/notes/${noteId}`, { method: "DELETE" }),
 
   getModuleLog: (moduleSlug: string) => request(`/module-log/${moduleSlug}`),
+
+  getSitePages: () => request("/site-settings/pages"),
+  updateSitePage: (id: number, visible: boolean) =>
+    request(`/site-settings/pages/${id}`, { method: "PATCH", body: JSON.stringify({ visible }) }),
+  getSiteLinks: (type?: string) => request(`/site-settings/links${type ? `?type=${type}` : ""}`),
+  createSiteLink: (payload: Record<string, unknown>) =>
+    request("/site-settings/links", { method: "POST", body: JSON.stringify(payload) }),
+  updateSiteLink: (id: number, payload: Record<string, unknown>) =>
+    request(`/site-settings/links/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
+  deleteSiteLink: (id: number) => request(`/site-settings/links/${id}`, { method: "DELETE" }),
+  getSiteConfig: () => request("/site-settings/config"),
+  updateSiteConfig: (settings: Record<string, string>) =>
+    request("/site-settings/config", { method: "PATCH", body: JSON.stringify({ settings }) }),
+  getSessionConfig: () => request("/site-settings/session-config"),
+  getPublicRegistrationEnabled: () => request("/site-settings/public/registration-enabled"),
 };

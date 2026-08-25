@@ -292,9 +292,9 @@ export default function NewsEditor() {
                       <div key={i} className="flex items-center gap-3 bg-surface-alt rounded-md px-3 py-2 text-sm">
                         <div className="w-12 h-12 rounded overflow-hidden bg-surface-alt shrink-0">
                           {item.media_type === "image" ? (
-                            <img src={item.url} alt="" className="w-full h-full object-cover" />
+                            <img src={item.url} alt="" className="w-full h-full object-contain" />
                           ) : (
-                            <video src={item.url} muted className="w-full h-full object-cover" />
+                            <video src={item.url} muted className="w-full h-full object-contain" />
                           )}
                         </div>
                         <span className="flex-1 truncate text-body">{item.media_type === "image" ? "Image" : "Video"} {i + 1}</span>

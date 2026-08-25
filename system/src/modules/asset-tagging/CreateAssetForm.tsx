@@ -1,15 +1,16 @@
-import { useState, useEffect, useRef } from "react";
-import { X, AlertTriangle, Camera } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, AlertTriangle } from "lucide-react";
 import { api } from "../../lib/api";
 import { useToast } from "../../context/ToastContext";
 import { useEscapeKey } from "../../lib/useEscapeKey";
 import ConfirmDialog from "../../components/ConfirmDialog";
-import { STATUS_OPTIONS } from "./statusMeta";
+import PhotoManager from "./PhotoManager";
+import { DIRECT_STATUS_OPTIONS } from "./statusMeta";
 
 const EMPTY_FORM = {
   name: "",
   description: "",
-  photo_url: "",
+  photos: [] as string[],
   category_id: "",
   serial_code: "",
   status: "in_storage",
@@ -28,9 +29,7 @@ export default function CreateAssetForm({ onClose, onCreated, onNavigateToAsset 
   const [error, setError] = useState<string | null>(null);
   const [conflict, setConflict] = useState<{ id: number; tagId: string } | null>(null);
   const [saving, setSaving] = useState(false);
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
 
   const hasChanges = JSON.stringify(form) !== JSON.stringify(EMPTY_FORM);
@@ -51,21 +50,6 @@ export default function CreateAssetForm({ onClose, onCreated, onNavigateToAsset 
     });
   }, []);
 
-  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploadingPhoto(true);
-    try {
-      const { url } = await api.uploadAssetPhoto(file);
-      setForm((f) => ({ ...f, photo_url: url }));
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Photo upload failed");
-    } finally {
-      setUploadingPhoto(false);
-      e.target.value = "";
-    }
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -75,7 +59,7 @@ export default function CreateAssetForm({ onClose, onCreated, onNavigateToAsset 
       const created = await api.createAsset({
         name: form.name,
         description: form.description || undefined,
-        photo_url: form.photo_url || undefined,
+        photo_urls: form.photos,
         category_id: Number(form.category_id),
         serial_code: form.serial_code,
         status: form.status,
@@ -107,22 +91,7 @@ export default function CreateAssetForm({ onClose, onCreated, onNavigateToAsset 
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-3">
-          <div className="flex items-center gap-3">
-            {form.photo_url ? (
-              <img src={form.photo_url} alt="" className="w-14 h-14 rounded-lg object-cover" />
-            ) : (
-              <div className="w-14 h-14 rounded-lg bg-surface-alt" />
-            )}
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploadingPhoto}
-              className="flex items-center gap-1.5 text-sm text-body border border-border/10 rounded-md px-3 py-2 hover:bg-surface-alt disabled:opacity-50"
-            >
-              <Camera size={14} /> {uploadingPhoto ? "Uploading..." : "Add Photo (optional)"}
-            </button>
-            <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePhotoUpload} className="hidden" />
-          </div>
+          <PhotoManager photos={form.photos} onChange={(photos) => setForm({ ...form, photos })} />
 
           <input
             required
@@ -161,7 +130,7 @@ export default function CreateAssetForm({ onClose, onCreated, onNavigateToAsset 
             onChange={(e) => setForm({ ...form, status: e.target.value })}
             className="w-full rounded-md border border-border/10 px-3 py-2.5 text-sm bg-surface text-body"
           >
-            {STATUS_OPTIONS.map((s) => (
+            {DIRECT_STATUS_OPTIONS.map((s) => (
               <option key={s.value} value={s.value}>{s.label}</option>
             ))}
           </select>

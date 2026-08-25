@@ -1,19 +1,6 @@
 name: prismma-website
 
 services:
-  db:
-    image: postgres:17-alpine
-    restart: unless-stopped
-    env_file:
-      - ../backend/.env
-    volumes:
-      - db_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
   backend:
     build:
       context: ..
@@ -23,9 +10,6 @@ services:
       - ../backend/.env
     ports:
       - "8000:8000"
-    depends_on:
-      db:
-        condition: service_healthy
 
   homepage:
     build:
@@ -61,6 +45,3 @@ services:
       - homepage
       - system
       - backend
-
-volumes:
-  db_data:
