@@ -4,7 +4,7 @@ import Footer from "@/components/Footer";
 import GlobalBackground from "@/components/GlobalBackground";
 import CookieConsent from "@/components/CookieConsent";
 import MaintenancePage from "@/components/MaintenancePage";
-import { getPublicNav, getPublicSiteInfo, getPublicLinks, getMaintenanceStatus } from "@/lib/site-settings";
+import { getPublicNav, getPublicSiteInfo, getPublicLinks, getMaintenanceStatus, getAnnouncement } from "@/lib/site-settings";
 import "./globals.css";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://prismma.net";
@@ -43,12 +43,13 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const [maintenance, nav, siteInfo, socialLinks, footerLinks] = await Promise.all([
+  const [maintenance, nav, siteInfo, socialLinks, footerLinks, announcement] = await Promise.all([
     getMaintenanceStatus(),
     getPublicNav(),
     getPublicSiteInfo(),
     getPublicLinks("social"),
     getPublicLinks("footer"),
+    getAnnouncement(),
   ]);
 
   const organizationJsonLd = {
@@ -91,7 +92,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body className="flex min-h-screen flex-col">
         <GlobalBackground />
-        <Navbar nav={nav} />
+        <Navbar nav={nav} announcement={announcement} />
         <main className="flex-1">{children}</main>
         <Footer nav={nav} siteInfo={siteInfo} socialLinks={socialLinks} footerLinks={footerLinks} />
         <CookieConsent />

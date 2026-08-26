@@ -54,7 +54,7 @@ export default function ModulesTab() {
       </div>
 
       <div className="bg-surface rounded-xl border border-border/10 divide-y divide-black/5">
-        {modules.map((m) => (
+        {modules.filter((m) => m.slug !== "site-settings").map((m) => (
           <div key={m.id} className="flex items-center justify-between px-5 py-4 flex-wrap gap-3">
             <div>
               <span className="text-sm font-medium text-heading">{m.name}</span>

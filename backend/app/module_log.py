@@ -21,15 +21,20 @@ class ModuleLogEntry(BaseModel):
 @router.get("/{module_slug}", response_model=list[ModuleLogEntry])
 def get_module_log(
     module_slug: str,
+    limit: int = 200,
+    offset: int = 0,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_superadmin),
 ):
+    limit = min(max(limit, 1), 500)
     Actor = aliased(User)
     rows = (
         db.query(ModuleActionLog, Actor)
         .outerjoin(Actor, ModuleActionLog.performed_by == Actor.id)
         .filter(ModuleActionLog.module == module_slug)
         .order_by(ModuleActionLog.created_at.desc())
+        .limit(limit)
+        .offset(offset)
         .all()
     )
     return [

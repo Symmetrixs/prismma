@@ -145,8 +145,15 @@ def _build_all_entries(db: Session) -> list[HistoryEntry]:
 
 
 @router.get("", response_model=list[HistoryEntry])
-def get_history(db: Session = Depends(get_db), current_user: User = Depends(require_superadmin)):
-    return _build_all_entries(db)
+def get_history(
+    limit: int = 200,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_superadmin),
+):
+    limit = min(max(limit, 1), 500)
+    entries = _build_all_entries(db)
+    return entries[offset : offset + limit]
 
 
 @router.get("/mine", response_model=list[HistoryEntry])

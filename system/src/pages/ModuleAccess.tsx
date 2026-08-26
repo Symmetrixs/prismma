@@ -18,7 +18,7 @@ export default function ModuleAccess() {
 
   async function load() {
     const [mods, acc] = await Promise.all([api.getModules(), api.getMyModuleAccess()]);
-    setModules(mods.filter((m: ModuleDef) => m.slug !== "admin-operations"));
+    setModules(mods.filter((m: ModuleDef) => m.slug !== "admin-operations" && m.slug !== "site-settings"));
     setAccess(acc);
     setLoading(false);
   }

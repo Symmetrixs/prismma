@@ -45,6 +45,35 @@ def _generate_unique_slug(title: str, db: Session, exclude_id: int | None = None
 router = APIRouter(prefix="/news", tags=["news"])
 
 
+class Announcement(Base):
+    __tablename__ = "announcements"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    message: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class AnnouncementRead(BaseModel):
+    enabled: bool
+    message: str
+
+
+class AnnouncementUpdate(BaseModel):
+    enabled: bool
+    message: str
+
+
+def _get_announcement(db: Session) -> Announcement:
+    row = db.query(Announcement).first()
+    if not row:
+        row = Announcement(enabled=False, message="")
+        db.add(row)
+        db.commit()
+        db.refresh(row)
+    return row
+
+
 class NewsCategory(str, enum.Enum):
     MALAYSIA = "malaysia"
     GLOBAL = "global"
@@ -82,7 +111,7 @@ class NewsMedia(Base):
     __tablename__ = "news_media"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    news_id: Mapped[int] = mapped_column(Integer, ForeignKey("news.id"), nullable=False)
+    news_id: Mapped[int] = mapped_column(Integer, ForeignKey("news.id", ondelete="CASCADE"), nullable=False)
     media_type: Mapped[MediaType] = mapped_column(
         SAEnum(MediaType, values_callable=lambda x: [e.value for e in x]), nullable=False
     )
@@ -141,9 +170,12 @@ class NewsRead(BaseModel):
 def list_news(
     category: NewsCategory | None = Query(default=None),
     published_only: bool = Query(default=True),
+    limit: int = 200,
+    offset: int = 0,
     db: Session = Depends(get_db),
     current_user: User | None = Depends(get_optional_user),
 ):
+    limit = min(max(limit, 1), 500)
     can_see_drafts = current_user is not None and (
         current_user.role in ("admin", "superadmin")
         or _has_news_editor_access(current_user, db)
@@ -156,7 +188,7 @@ def list_news(
         query = query.filter(News.category == category)
     if published_only:
         query = query.filter(News.published == True)
-    return query.order_by(News.created_at.desc()).all()
+    return query.order_by(News.created_at.desc()).limit(limit).offset(offset).all()
 
 
 @router.get("/{slug}", response_model=NewsRead)
@@ -235,3 +267,24 @@ def delete_news(
     db.delete(item)
     db.commit()
     return {"deleted": True}
+
+
+@router.get("/announcement/current", response_model=AnnouncementRead)
+def get_announcement(db: Session = Depends(get_db)):
+    row = _get_announcement(db)
+    return AnnouncementRead(enabled=row.enabled, message=row.message)
+
+
+@router.patch("/announcement/current", response_model=AnnouncementRead)
+def update_announcement(
+    payload: AnnouncementUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_module_access("news-editor")),
+):
+    row = _get_announcement(db)
+    row.enabled = payload.enabled
+    row.message = payload.message
+    log_module_action(db, "news-editor", "Announcement banner", "announcement_updated", current_user.id, target_id=row.id)
+    db.commit()
+    db.refresh(row)
+    return AnnouncementRead(enabled=row.enabled, message=row.message)

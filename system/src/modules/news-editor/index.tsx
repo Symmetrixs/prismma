@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Pencil, Trash2, Newspaper, X, ArrowUp, ArrowDown, History } from "lucide-react";
+import { Plus, Pencil, Trash2, Newspaper, X, ArrowUp, ArrowDown, History, Megaphone } from "lucide-react";
 import { api } from "../../lib/api";
 import DashboardLayout from "../../components/DashboardLayout";
 import ConfirmDialog from "../../components/ConfirmDialog";
@@ -45,6 +45,7 @@ export default function NewsEditor() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [deletingArticle, setDeletingArticle] = useState<Article | null>(null);
   const [showLog, setShowLog] = useState(false);
+  const [showAnnouncement, setShowAnnouncement] = useState(false);
   const { user } = useAuth();
   const isSuperadmin = user?.role === "superadmin";
   const [originalForm, setOriginalForm] = useState(emptyForm);
@@ -189,6 +190,12 @@ export default function NewsEditor() {
               <History size={14} /> Log
             </button>
           )}
+          <button
+            onClick={() => setShowAnnouncement(true)}
+            className="flex items-center gap-1.5 rounded-md border border-border/10 px-4 py-2.5 text-sm text-body hover:bg-surface-alt"
+          >
+            <Megaphone size={14} /> Announcement
+          </button>
           <button
             onClick={openCreate}
             className="inline-flex items-center gap-2 rounded-md bg-brand-orange px-5 py-2.5 text-sm font-medium text-white hover:opacity-90 transition-opacity"
@@ -365,6 +372,92 @@ export default function NewsEditor() {
       {showLog && (
         <ModuleLogViewer moduleSlug="news-editor" title="News Editor Log" onClose={() => setShowLog(false)} />
       )}
+
+      {showAnnouncement && <AnnouncementEditor onClose={() => setShowAnnouncement(false)} />}
     </DashboardLayout>
+  );
+}
+
+function AnnouncementEditor({ onClose }: { onClose: () => void }) {
+  const [enabled, setEnabled] = useState(false);
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const toast = useToast();
+
+  useEscapeKey(onClose);
+
+  useEffect(() => {
+    api.getAnnouncement().then((r) => {
+      setEnabled(r.enabled);
+      setMessage(r.message);
+      setLoading(false);
+    });
+  }, []);
+
+  async function save() {
+    setSaving(true);
+    try {
+      await api.updateAnnouncement({ enabled, message });
+      toast.success(enabled ? "Banner is now showing on the homepage" : "Banner is now hidden");
+      onClose();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not save");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+      <div className="bg-surface rounded-xl border border-border/10 max-w-md w-full shadow-lg">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border/10">
+          <h3 className="font-display text-lg font-semibold text-heading">Announcement Banner</h3>
+          <button onClick={onClose} className="text-body hover:text-heading">
+            <X size={18} />
+          </button>
+        </div>
+
+        {loading ? (
+          <p className="text-sm text-body py-10 text-center">Loading...</p>
+        ) : (
+          <div className="p-6 space-y-4">
+            <p className="text-xs text-muted">
+              Shows as a dismissible strip across the top of the homepage. If someone's already dismissed it, changing the message brings it back for them.
+            </p>
+
+            <div className="flex items-center justify-between rounded-lg border border-border/10 px-4 py-3">
+              <span className="text-sm text-heading">Show banner</span>
+              <button
+                onClick={() => setEnabled(!enabled)}
+                className={`relative w-11 h-6 rounded-full shrink-0 transition-colors ${enabled ? "bg-brand-orange" : "bg-border/30"}`}
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
+                    enabled ? "translate-x-5" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
+
+            <textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="e.g. Office closed for the holiday, back Monday"
+              rows={3}
+              className="w-full rounded-md border border-border/10 px-3 py-2.5 text-sm bg-surface text-body resize-y"
+            />
+
+            <button
+              onClick={save}
+              disabled={saving}
+              className="w-full rounded-md bg-brand-orange px-6 py-3 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
+            >
+              {saving ? "Saving..." : "Save"}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

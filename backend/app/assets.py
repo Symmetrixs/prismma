@@ -21,7 +21,7 @@ class AssetCategory(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
-    created_by: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    created_by: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
     created_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, default=datetime.utcnow)
 
 
@@ -32,13 +32,13 @@ class Asset(Base):
     tag_id: Mapped[str] = mapped_column(String(20), unique=True, nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    category_id: Mapped[int] = mapped_column(Integer, ForeignKey("asset_categories.id"), nullable=False)
+    category_id: Mapped[int] = mapped_column(Integer, ForeignKey("asset_categories.id", ondelete="RESTRICT"), nullable=False)
     serial_code: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="in_storage")
     location: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    assigned_person_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id"), nullable=True)
-    assigned_department_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("departments.id"), nullable=True)
-    created_by: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    assigned_person_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    assigned_department_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("departments.id", ondelete="SET NULL"), nullable=True)
+    created_by: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
     created_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, default=datetime.utcnow)
     updated_at: Mapped[datetime | None] = mapped_column(
         DateTime, nullable=True, default=datetime.utcnow, onupdate=datetime.utcnow
@@ -59,7 +59,7 @@ class AssetPhoto(Base):
     __tablename__ = "asset_photos"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    asset_id: Mapped[int] = mapped_column(Integer, ForeignKey("assets.id"), nullable=False)
+    asset_id: Mapped[int] = mapped_column(Integer, ForeignKey("assets.id", ondelete="CASCADE"), nullable=False)
     url: Mapped[str] = mapped_column(String(500), nullable=False)
     order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     created_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, default=datetime.utcnow)
@@ -69,9 +69,9 @@ class AssetNote(Base):
     __tablename__ = "asset_notes"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    asset_id: Mapped[int] = mapped_column(Integer, ForeignKey("assets.id"), nullable=False)
+    asset_id: Mapped[int] = mapped_column(Integer, ForeignKey("assets.id", ondelete="CASCADE"), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
-    author_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    author_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
     edited: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, default=datetime.utcnow)
     updated_at: Mapped[datetime | None] = mapped_column(
@@ -86,15 +86,15 @@ class AssetSubmission(Base):
     __tablename__ = "asset_submissions"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    asset_id: Mapped[int] = mapped_column(Integer, ForeignKey("assets.id"), nullable=False)
-    returned_by_person_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id"), nullable=True)
-    returned_by_department_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("departments.id"), nullable=True)
+    asset_id: Mapped[int] = mapped_column(Integer, ForeignKey("assets.id", ondelete="CASCADE"), nullable=False)
+    returned_by_person_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    returned_by_department_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("departments.id", ondelete="SET NULL"), nullable=True)
     proposed_status: Mapped[str] = mapped_column(String(30), nullable=False)
     detail: Mapped[str | None] = mapped_column(Text, nullable=True)
-    submitted_by: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    submitted_by: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
     final_status: Mapped[str | None] = mapped_column(String(30), nullable=True)
-    reviewed_by: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id"), nullable=True)
+    reviewed_by: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, default=datetime.utcnow)
 
@@ -112,7 +112,7 @@ class SubmissionPhoto(Base):
     __tablename__ = "submission_photos"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    submission_id: Mapped[int] = mapped_column(Integer, ForeignKey("asset_submissions.id"), nullable=False)
+    submission_id: Mapped[int] = mapped_column(Integer, ForeignKey("asset_submissions.id", ondelete="CASCADE"), nullable=False)
     url: Mapped[str] = mapped_column(String(500), nullable=False)
     order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     created_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, default=datetime.utcnow)
@@ -383,8 +383,14 @@ def users_summary(db: Session = Depends(get_db), current_user: User = Depends(re
 
 
 @router.get("", response_model=list[AssetRead])
-def list_assets(db: Session = Depends(get_db), current_user: User = Depends(require_asset_access)):
-    assets = db.query(Asset).order_by(Asset.created_at.desc()).all()
+def list_assets(
+    limit: int = 200,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_asset_access),
+):
+    limit = min(max(limit, 1), 500)
+    assets = db.query(Asset).order_by(Asset.created_at.desc()).limit(limit).offset(offset).all()
     return [_serialize_asset(a) for a in assets]
 
 
@@ -665,13 +671,16 @@ def create_submission(
 @router.get("/submissions/list", response_model=list[SubmissionRead])
 def list_submissions(
     status: str | None = None,
+    limit: int = 200,
+    offset: int = 0,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_asset_admin),
 ):
+    limit = min(max(limit, 1), 500)
     query = db.query(AssetSubmission)
     if status:
         query = query.filter(AssetSubmission.status == status)
-    submissions = query.order_by(AssetSubmission.created_at.desc()).all()
+    submissions = query.order_by(AssetSubmission.created_at.desc()).limit(limit).offset(offset).all()
     return [_serialize_submission(s) for s in submissions]
 
 

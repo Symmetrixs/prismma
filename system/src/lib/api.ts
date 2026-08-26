@@ -248,4 +248,8 @@ export const api = {
     request("/site-settings/config", { method: "PATCH", body: JSON.stringify({ settings }) }),
   getSessionConfig: () => request("/site-settings/session-config"),
   getPublicRegistrationEnabled: () => request("/site-settings/public/registration-enabled"),
+
+  getAnnouncement: () => request("/news/announcement/current"),
+  updateAnnouncement: (payload: { enabled: boolean; message: string }) =>
+    request("/news/announcement/current", { method: "PATCH", body: JSON.stringify(payload) }),
 };

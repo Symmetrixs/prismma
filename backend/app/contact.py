@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, EmailStr
 import smtplib
 from email.mime.text import MIMEText
 from app.core.config import settings
+from app.core.rate_limit import limiter
 
 router = APIRouter(prefix="/contact", tags=["contact"])
 
@@ -42,7 +43,8 @@ def _build_body(payload: ContactRequest) -> str:
 
 
 @router.post("")
-def submit_contact(payload: ContactRequest):
+@limiter.limit("5/hour")
+def submit_contact(request: Request, payload: ContactRequest):
     if not settings.SMTP_HOST or not settings.HR_EMAIL:
         raise HTTPException(status_code=503, detail="Mail service not configured")
 

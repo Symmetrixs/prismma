@@ -69,6 +69,8 @@ def request_access(
     module = db.query(Module).filter(Module.id == module_id).first()
     if not module:
         raise HTTPException(status_code=404, detail="Module not found")
+    if module.slug in ("admin-operations", "site-settings"):
+        raise HTTPException(status_code=400, detail="This module isn't requestable, access is role-based instead")
 
     existing_pending = (
         db.query(ModuleAccess)

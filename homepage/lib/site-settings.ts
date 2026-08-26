@@ -58,3 +58,12 @@ export function getMaintenanceStatus(): Promise<MaintenanceStatus> {
     message: "",
   });
 }
+
+export interface Announcement {
+  enabled: boolean;
+  message: string;
+}
+
+export function getAnnouncement(): Promise<Announcement> {
+  return safeFetch<Announcement>("/news/announcement/current", { enabled: false, message: "" });
+}

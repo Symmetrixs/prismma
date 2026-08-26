@@ -6,7 +6,8 @@ import { useEffect, useState } from "react";
 import { Info, Package, Handshake, Newspaper, Mail, Route, Briefcase, Menu, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import LoginButton from "./LoginButton";
-import type { NavPage } from "@/lib/site-settings";
+import AnnouncementBanner from "./AnnouncementBanner";
+import type { NavPage, Announcement } from "@/lib/site-settings";
 
 const ICON_MAP: Record<string, typeof Info> = {
   about: Info,
@@ -18,7 +19,7 @@ const ICON_MAP: Record<string, typeof Info> = {
   careers: Briefcase,
 };
 
-export default function Navbar({ nav }: { nav: NavPage[] }) {
+export default function Navbar({ nav, announcement }: { nav: NavPage[]; announcement: Announcement }) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -47,6 +48,7 @@ export default function Navbar({ nav }: { nav: NavPage[] }) {
         scrolled || mobileOpen ? "bg-white/85 backdrop-blur-md shadow-sm" : "bg-white/65 backdrop-blur-md"
       }`}
     >
+      {announcement.enabled && announcement.message && <AnnouncementBanner message={announcement.message} />}
       <div className="mx-auto max-w-[1600px] px-4 sm:px-8 h-24 flex items-center justify-between gap-6">
         <Link href="/" className="flex items-center shrink-0" onClick={() => setMobileOpen(false)}>
           <Image

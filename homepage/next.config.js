@@ -1,5 +1,6 @@
 /** type {import('next').NextConfig} */
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://aechplmlllfzqqfpnodx.supabase.co';
 
 const nextConfig = {
   output: 'standalone',
@@ -21,8 +22,8 @@ const nextConfig = {
               "script-src 'self' 'unsafe-inline'",
               "style-src 'self' 'unsafe-inline' https://api.fontshare.com https://fonts.googleapis.com",
               "font-src 'self' https://api.fontshare.com https://fonts.gstatic.com data:",
-              "img-src 'self' data: https://aechplmlllfzqqfpnodx.supabase.co",
-              "media-src 'self' https://aechplmlllfzqqfpnodx.supabase.co",
+              `img-src 'self' data: ${supabaseUrl}`,
+              `media-src 'self' ${supabaseUrl}`,
               "frame-src https://maps.google.com https://www.google.com",
               `connect-src 'self' ${apiUrl}`,
             ].join('; '),
