@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Integer, String, Boolean, DateTime, Text, ForeignKey
+from sqlalchemy import Integer, String, Boolean, DateTime, Text, ForeignKey, CheckConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
@@ -42,6 +42,11 @@ class User(Base):
 
     department: Mapped[Department | None] = relationship("Department", foreign_keys=[department_id])
 
+    __table_args__ = (
+        CheckConstraint("role IN ('staff', 'admin', 'superadmin')", name="users_role_check"),
+        CheckConstraint("account_status IN ('pending', 'active', 'disabled', 'rejected')", name="users_account_status_check"),
+    )
+
 
 class Module(Base):
     __tablename__ = "modules"
@@ -54,6 +59,10 @@ class Module(Base):
     component_key: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     created_by: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
     created_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, default=datetime.utcnow)
+
+    __table_args__ = (
+        CheckConstraint("status IN ('active', 'coming_soon', 'disabled')", name="modules_status_check"),
+    )
 
 
 class ModuleAccess(Base):
@@ -72,6 +81,10 @@ class ModuleAccess(Base):
     module: Mapped[Module] = relationship("Module", foreign_keys=[module_id])
     user: Mapped[User] = relationship("User", foreign_keys=[user_id])
 
+    __table_args__ = (
+        CheckConstraint("status IN ('pending', 'approved', 'rejected', 'revoked')", name="module_access_status_check"),
+    )
+
 
 class PasswordResetRequest(Base):
     __tablename__ = "password_reset_requests"
@@ -84,6 +97,10 @@ class PasswordResetRequest(Base):
     decided_by: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
 
     user: Mapped[User] = relationship("User", foreign_keys=[user_id])
+
+    __table_args__ = (
+        CheckConstraint("status IN ('pending', 'approved', 'rejected')", name="password_reset_requests_status_check"),
+    )
 
 
 class RoleChangeHistory(Base):

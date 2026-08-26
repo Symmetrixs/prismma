@@ -1,6 +1,6 @@
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import Integer, String, Text, Boolean, DateTime, ForeignKey
+from sqlalchemy import Integer, String, Text, Boolean, DateTime, ForeignKey, CheckConstraint
 from sqlalchemy.orm import Session, Mapped, mapped_column, relationship, aliased
 from pydantic import BaseModel
 from app.db.base import Base
@@ -54,6 +54,13 @@ class Asset(Base):
         "AssetPhoto", cascade="all, delete-orphan", order_by="AssetPhoto.order"
     )
 
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('in_use', 'in_storage', 'under_repair', 'disposed', 'to_be_announced')",
+            name="assets_status_check",
+        ),
+    )
+
 
 class AssetPhoto(Base):
     __tablename__ = "asset_photos"
@@ -103,6 +110,18 @@ class AssetSubmission(Base):
     returned_by_department: Mapped[Department | None] = relationship("Department", foreign_keys=[returned_by_department_id])
     submitter: Mapped[User] = relationship("User", foreign_keys=[submitted_by])
     reviewer: Mapped[User | None] = relationship("User", foreign_keys=[reviewed_by])
+
+    __table_args__ = (
+        CheckConstraint("status IN ('pending', 'reviewed')", name="asset_submissions_status_check"),
+        CheckConstraint(
+            "proposed_status IN ('in_use', 'in_storage', 'under_repair', 'disposed', 'to_be_announced')",
+            name="asset_submissions_proposed_status_check",
+        ),
+        CheckConstraint(
+            "final_status IS NULL OR final_status IN ('in_use', 'in_storage', 'under_repair', 'disposed', 'to_be_announced')",
+            name="asset_submissions_final_status_check",
+        ),
+    )
     photos: Mapped[list["SubmissionPhoto"]] = relationship(
         "SubmissionPhoto", cascade="all, delete-orphan", order_by="SubmissionPhoto.order"
     )

@@ -1,6 +1,6 @@
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import Integer, String, Text, Boolean
+from sqlalchemy import Integer, String, Text, Boolean, CheckConstraint
 from sqlalchemy.orm import Session, Mapped, mapped_column
 from pydantic import BaseModel
 from app.db.base import Base
@@ -55,6 +55,10 @@ class SiteLink(Base):
     label: Mapped[str] = mapped_column(String(100), nullable=False)
     url: Mapped[str] = mapped_column(String(500), nullable=False)
     order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    __table_args__ = (
+        CheckConstraint("type IN ('social', 'footer')", name="site_links_type_check"),
+    )
 
 
 class SiteSetting(Base):

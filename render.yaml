@@ -1,4 +1,4 @@
-# Render deployment blueprint — PREP ONLY, not yet deployed.
+# Render deployment blueprint.
 #
 # This matches the service breakdown in Prismma_Hosting_Cost_Overview.pdf exactly:
 #   - backend (FastAPI):    Render Web Service, Docker
@@ -7,12 +7,16 @@
 #   - database:             Supabase, separate provider, not part of this file
 #
 # Local dev via docker-compose.yml is unaffected by this file and keeps working as-is.
-# Verify field names against Render's current docs before actually deploying with this.
+# Field names verified against Render's current Blueprint docs (runtime, not the deprecated env field).
+# Cross-service URLs (NEXT_PUBLIC_API_URL, NEXT_PUBLIC_SYSTEM_URL, NEXT_PUBLIC_SITE_URL,
+# API_URL, VITE_API_URL, VITE_HOMEPAGE_URL) are auto-wired via fromService, no manual entry needed.
+# CORS_ORIGINS, DATABASE_URL, JWT_SECRET_KEY, SMTP_*, HR_EMAIL, SUPABASE_URL, SUPABASE_SERVICE_KEY,
+# and NEXT_PUBLIC_SUPABASE_URL are still sync: false and need real values pasted into Render's dashboard.
 
 services:
   - type: web
     name: prismma-backend
-    env: docker
+    runtime: docker
     dockerfilePath: ./docker/backend.Dockerfile
     dockerContext: .
     plan: starter
@@ -49,29 +53,47 @@ services:
 
   - type: web
     name: prismma-homepage
-    env: docker
+    runtime: docker
     dockerfilePath: ./docker/homepage.Dockerfile
     dockerContext: .
     plan: starter
     envVars:
       - key: NEXT_PUBLIC_API_URL
-        sync: false
+        fromService:
+          name: prismma-backend
+          type: web
+          envVarKey: RENDER_EXTERNAL_URL
       - key: NEXT_PUBLIC_SYSTEM_URL
-        sync: false
+        fromService:
+          name: prismma-system
+          type: web
+          envVarKey: RENDER_EXTERNAL_URL
       - key: NEXT_PUBLIC_SITE_URL
-        sync: false
+        fromService:
+          name: prismma-homepage
+          type: web
+          envVarKey: RENDER_EXTERNAL_URL
       - key: NEXT_PUBLIC_SUPABASE_URL
         sync: false
       - key: API_URL
-        sync: false
+        fromService:
+          name: prismma-backend
+          type: web
+          envVarKey: RENDER_EXTERNAL_URL
 
   - type: web
     name: prismma-system
-    env: static
+    runtime: static
     buildCommand: cd system && npm install && npm run build
     staticPublishPath: ./system/dist
     envVars:
       - key: VITE_API_URL
-        sync: false
+        fromService:
+          name: prismma-backend
+          type: web
+          envVarKey: RENDER_EXTERNAL_URL
       - key: VITE_HOMEPAGE_URL
-        sync: false
+        fromService:
+          name: prismma-homepage
+          type: web
+          envVarKey: RENDER_EXTERNAL_URL
